@@ -56,7 +56,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     @Override
     public void setup() {
         super.setup();
-        this.redirApi = new NeutronSfcSdnRedirectionApi(this.txControl, this.em);
+        this.redirApi = new NeutronSfcSdnRedirectionApi(this.txControl, this.em, null);
     }
 
     // Inspection port tests
@@ -141,7 +141,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertNotNull(result.getParentId());
         String portGroupId = result.getParentId();
 
-        RedirectionApiUtils utils = new RedirectionApiUtils(this.em, this.txControl);
+        RedirectionApiUtils utils = new RedirectionApiUtils(this.em, this.txControl, null);
 
         ppg = utils.findByPortPairgroupId(portGroupId);
         InspectionPortElement inspectionPortElement2 = new InspectionPortEntity(null, ppg,

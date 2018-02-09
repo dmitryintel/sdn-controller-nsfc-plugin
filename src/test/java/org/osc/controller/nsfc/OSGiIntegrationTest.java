@@ -62,6 +62,12 @@ import org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory;
 @ExamReactorStrategy(PerClass.class)
 public class OSGiIntegrationTest {
 
+    private static final String DOMAIN_NAME = "default";
+    private static final String PASSWORD = "admin123";
+    private static final String USERNAME = "admin";
+    private static final String TENANT = "admin";
+    private static final String TEST_CONTROLLER_IP = "10.3.241.221";
+
     private static final String TEST_DB_URL = "jdbc:h2:mem:nsfc-osgi-db;DB_CLOSE_DELAY=-1";
 
     @Inject
@@ -109,23 +115,23 @@ public class OSGiIntegrationTest {
 
                 @Override
                 public String getProviderIpAddress() {
-                    return "dummy";                }
+                    return TEST_CONTROLLER_IP;       }
 
                 @Override
                 public String getProviderUsername() {
-                    return "dummy";                }
+                    return USERNAME;                }
 
                 @Override
                 public String getProviderPassword() {
-                    return "dummy";                }
+                    return PASSWORD;                }
 
                 @Override
                 public String getProviderAdminTenantName() {
-                    return "dummy";                }
+                    return TENANT;                }
 
                 @Override
                 public String getProviderAdminDomainId() {
-                    return "dummy";                }
+                    return DOMAIN_NAME;                }
 
                 @Override
                 public boolean isProviderHttps() {
@@ -158,6 +164,29 @@ public class OSGiIntegrationTest {
                     // the latest from Eclipse
                     bundle("reference:file:" + PathUtils.getBaseDir() + "/target/classes/"),
                     // And some dependencies
+
+//                    mavenBundle("org.apache.httpcomponents", "httpcore").versionAsInProject(),
+//                    mavenBundle("org.apache.httpcomponents", "httpclient").versionAsInProject(),
+
+                    mavenBundle("com.fasterxml.jackson.core", "jackson-databind").versionAsInProject(),
+                    mavenBundle("com.fasterxml.jackson.core", "jackson-annotations").versionAsInProject(),
+                    mavenBundle("com.fasterxml.jackson.core", "jackson-core").versionAsInProject(),
+                    mavenBundle("com.fasterxml.jackson.jaxrs", "jackson-jaxrs-base").versionAsInProject(),
+                    mavenBundle("com.fasterxml.jackson.jaxrs", "jackson-jaxrs-json-provider").versionAsInProject(),
+                    mavenBundle("org.osc.plugin", "nsfc-uber-openstack4j").versionAsInProject(),
+
+                    mavenBundle("org.glassfish.jersey.core", "jersey-client").versionAsInProject(),
+                    mavenBundle("org.glassfish.jersey.core", "jersey-common").versionAsInProject(),
+                    mavenBundle("org.glassfish.jersey.bundles.repackaged", "jersey-guava").versionAsInProject(),
+                    mavenBundle("org.glassfish.hk2", "hk2-api").versionAsInProject(),
+                    mavenBundle("org.glassfish.hk2", "hk2-locator").versionAsInProject(),
+                    mavenBundle("org.glassfish.hk2", "hk2-utils").versionAsInProject(),
+                    mavenBundle("org.glassfish.hk2", "osgi-resource-locator").versionAsInProject(),
+                    mavenBundle("javax.annotation", "javax.annotation-api").versionAsInProject(),
+                    mavenBundle("org.glassfish.hk2.external", "aopalliance-repackaged").versionAsInProject(),
+                    mavenBundle("javax.ws.rs", "javax.ws.rs-api").versionAsInProject(),
+                    mavenBundle("org.glassfish.jersey.media", "jersey-media-json-jackson").versionAsInProject(),
+
                     mavenBundle("org.apache.felix", "org.apache.felix.scr").versionAsInProject(),
 
                     mavenBundle("org.osc.api", "sdn-controller-api").versionAsInProject(),
@@ -170,7 +199,7 @@ public class OSGiIntegrationTest {
                     mavenBundle("com.h2database", "h2").versionAsInProject(),
 
                     // Hibernate
-
+                    systemPackage("javax.naming"), systemPackage("javax.annotation"),
                     systemPackage("javax.xml.stream;version=1.0"), systemPackage("javax.xml.stream.events;version=1.0"),
                     systemPackage("javax.xml.stream.util;version=1.0"), systemPackage("javax.transaction;version=1.1"),
                     systemPackage("javax.transaction.xa;version=1.1"),
@@ -233,8 +262,8 @@ public class OSGiIntegrationTest {
 
         Properties props = new Properties();
         props.setProperty(JDBC_URL, TEST_DB_URL);
-        props.setProperty(JDBC_USER, "admin");
-        props.setProperty(JDBC_PASSWORD, "admin123");
+        props.setProperty(JDBC_USER, USERNAME);
+        props.setProperty(JDBC_PASSWORD, PASSWORD);
 
         DataSource ds = null;
         try {
@@ -299,4 +328,5 @@ public class OSGiIntegrationTest {
         assertNull(noSuchHook);
         assertTrue(this.redirApi instanceof NeutronSfcSdnRedirectionApi);
     }
+
 }

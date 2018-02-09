@@ -28,6 +28,10 @@ import javax.persistence.EntityManager;
 import javax.sql.DataSource;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.api.client.IOSClientBuilder.V3;
+import org.openstack4j.model.common.Identifier;
+import org.openstack4j.openstack.OSFactory;
 import org.osc.sdk.controller.FlowInfo;
 import org.osc.sdk.controller.FlowPortInfo;
 import org.osc.sdk.controller.Status;
@@ -76,6 +80,9 @@ public class NeutronSfcSdnControllerApi implements SdnControllerApi {
     private static final String DB_PASSWORD = "admin123";
     private static final String URL_OPTS = ";MVCC\\=TRUE;LOCK_TIMEOUT\\=10000;MV_STORE=FALSE;";
 
+    private static final String AUTH_URL_LOCAL = "/v3";
+    private static final int AUTH_URL_PORT = 5000;
+
     public NeutronSfcSdnControllerApi() {
         // For dependency injection. could be package private?
     }
@@ -87,6 +94,18 @@ public class NeutronSfcSdnControllerApi implements SdnControllerApi {
 
     @Override
     public SdnRedirectionApi createRedirectionApi(VirtualizationConnectorElement vc, String region) {
+
+        String domain = vc.getProviderAdminDomainId();
+        String username = vc.getProviderUsername();
+        String password = vc.getProviderPassword();
+        String tenantName = vc.getProviderAdminTenantName();
+
+        V3 v3 = OSFactory.builderV3()
+                .endpoint(authUrl(vc.getProviderIpAddress()))
+                .credentials(username, password, Identifier.byName(domain))
+                .scopeToProject(Identifier.byName(tenantName), Identifier.byName(domain));
+
+        OSClientV3 os = v3.authenticate();
 
         if (vc == null || vc.getName() == null || vc.getName().length() == 0) {
             throw new IllegalArgumentException("Non-null VC with non-empty name required!");
@@ -112,7 +131,7 @@ public class NeutronSfcSdnControllerApi implements SdnControllerApi {
                 .getResource(this.txControl);
 
 
-        return new NeutronSfcSdnRedirectionApi(this.txControl, em);
+        return new NeutronSfcSdnRedirectionApi(this.txControl, em, os);
     }
 
     @Override
@@ -124,5 +143,9 @@ public class NeutronSfcSdnControllerApi implements SdnControllerApi {
     @Override
     public void close() throws Exception {
         //no-op
+    }
+
+    private static String authUrl(String ip) {
+        return "http://" + ip + ":" + AUTH_URL_PORT + AUTH_URL_LOCAL;
     }
 }

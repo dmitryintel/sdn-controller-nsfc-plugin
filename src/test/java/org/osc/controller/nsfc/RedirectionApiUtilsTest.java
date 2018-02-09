@@ -37,7 +37,7 @@ public class RedirectionApiUtilsTest extends AbstractNeutronSfcPluginTest {
     @Override
     public void setup() {
         super.setup();
-        this.utils = new RedirectionApiUtils(this.em, this.txControl);
+        this.utils = new RedirectionApiUtils(this.em, this.txControl, null);
     }
 
     @Test
