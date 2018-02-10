@@ -254,10 +254,11 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
     // SFC methods
     @Override
     public NetworkElement registerNetworkElement(List<NetworkElement> portPairGroupList) throws Exception {
-        // NEW
+        // NEW //////////////////////////////////////////
 
         //check for null or empty list
         this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group member list");
+        this.utils.validatePPGList(portPairGroupList);
 
         List<String> portPairGroupIds = portPairGroupList
                                             .stream()
@@ -273,11 +274,11 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         PortChain portChainCreated = this.osClient.sfc().portchains().create(portChain);
 
-        NetworkElementEntity retVal = new NetworkElementEntity(portChainCreated.getId(),
-                                            new ArrayList<>(), new ArrayList<>(),
-                                            portPairGroupList.get(0).getParentId());
+//        NetworkElementEntity retVal = new NetworkElementEntity(portChainCreated.getId(),
+//                                            new ArrayList<>(), new ArrayList<>(),
+//                                            portPairGroupList.get(0).getParentId());
 
-        // OLD
+        // OLD //////////////////////////////////////////
 
         //check for null or empty list
         this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group member list");
@@ -298,12 +299,14 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
     @Override
     public NetworkElement updateNetworkElement(NetworkElement serviceFunctionChain, List<NetworkElement> portPairGroupList)
             throws Exception {
-        // NEW
+        // NEW //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Port Pair Group Service Function Chain Id");
         this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group update member list");
 
+
         PortChain portChain = this.osClient.sfc().portchains().get(serviceFunctionChain.getElementId());
-        this.utils.throwExceptionIfNull(portChain, PortChain.class);
+        this.utils.throwExceptionIfCannotFindById(portChain, "Service Function Chain", serviceFunctionChain.getElementId());
+        this.utils.validatePPGList(portPairGroupList);
 
         List<String> portPairGroupIds = portPairGroupList
                 .stream()
@@ -312,11 +315,11 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         portChain = Builders.portChain().from(portChain).portPairGroups(portPairGroupIds).build();
         PortChain portChainUpdated = this.osClient.sfc().portchains().update(portChain.getId(), portChain);
-        NetworkElementEntity retVal = new NetworkElementEntity(portChainUpdated.getId(),
-                                                new ArrayList<>(), new ArrayList<>(),
-                                                portPairGroupList.get(0).getParentId());
+//        NetworkElementEntity retVal = new NetworkElementEntity(portChainUpdated.getId(),
+//                                                new ArrayList<>(), new ArrayList<>(),
+//                                                portPairGroupList.get(0).getParentId());
 
-        // OLD
+        // OLD //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Port Pair Group Service Function Chain Id");
         this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group update member list");
 
@@ -338,7 +341,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
     @Override
     public void deleteNetworkElement(NetworkElement serviceFunctionChain) throws Exception {
 
-        // NEW
+        // NEW //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
         PortChain portChain = this.osClient.sfc().portchains().get(serviceFunctionChain.getElementId());
         this.utils.throwExceptionIfNull(portChain, PortChain.class);
@@ -349,7 +352,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
                         + ". Status " + response.getCode() + "\nMessage:\n" + response.getFault());
         }
 
-        // OLD
+        // OLD //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
         ServiceFunctionChainEntity sfc = this.utils.findBySfcId(serviceFunctionChain.getElementId());
         this.utils.throwExceptionIfCannotFindById(sfc, "Service Function Chain", serviceFunctionChain.getElementId());
@@ -375,7 +378,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
 
         PortChain portChain = this.osClient.sfc().portchains().get(serviceFunctionChain.getElementId());
-        this.utils.throwExceptionIfNull(portChain, PortChain.class);
+        this.utils.throwExceptionIfCannotFindById(portChain, "Service Function Chain", serviceFunctionChain.getElementId());
 
         if (portChain.getPortPairGroups() == null) {
             return emptyList();

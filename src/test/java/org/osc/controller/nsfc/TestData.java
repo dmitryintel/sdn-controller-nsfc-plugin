@@ -18,6 +18,8 @@ package org.osc.controller.nsfc;
 
 import static java.util.Arrays.asList;
 
+import org.openstack4j.api.Builders;
+import org.openstack4j.model.network.ext.PortChain;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
@@ -53,6 +55,8 @@ class TestData {
     public static NetworkElementEntity egress;
     public static NetworkElementEntity inspected;
 
+    public static PortChain portChain;
+
     public static void setupDataObjects() {
         ingress = new NetworkElementEntity();
         ingress.setElementId(IMAC1_STR + IMAC1_STR);
@@ -77,6 +81,9 @@ class TestData {
         sfc = new ServiceFunctionChainEntity();
 
         inspectionHook = new InspectionHookEntity(inspected, sfc);
+
+        portChain = Builders.portChain().id(sfc.getElementId()).build();
+
     }
 
 }

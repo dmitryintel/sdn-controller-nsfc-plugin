@@ -248,6 +248,22 @@ public class RedirectionApiUtils {
         return new NetworkElementEntity(port.getId(), ips, singletonList(port.getMacAddress()), portPairId);
     }
 
+    public void validatePPGList(List<NetworkElement> portPairGroups) {
+        List<PortPairGroupEntity> ppgList = new ArrayList<>();
+
+        for (NetworkElement ne : portPairGroups) {
+            throwExceptionIfNullElementAndId(ne, "Port Pair Group Id");
+            PortPairGroupEntity ppg = findByPortPairgroupId(ne.getElementId());
+            throwExceptionIfCannotFindById(ppg, "Port Pair Group", ne.getElementId());
+            if (ppg.getServiceFunctionChain() != null) {
+                throw new IllegalArgumentException(
+                        String.format("Port Pair Group Id %s is already chained to SFC Id : %s ", ne.getElementId(),
+                                ppg.getServiceFunctionChain().getElementId()));
+            }
+
+        }
+    }
+
     public List<PortPairGroupEntity> validateAndAdd(List<NetworkElement> portPairGroups, ServiceFunctionChainEntity sfc) {
         List<PortPairGroupEntity> ppgList = new ArrayList<>();
 

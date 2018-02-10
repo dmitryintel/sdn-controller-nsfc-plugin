@@ -33,7 +33,18 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.api.client.IOSClientBuilder.V3;
+import org.openstack4j.api.networking.NetworkingService;
+import org.openstack4j.api.networking.PortService;
+import org.openstack4j.api.networking.ext.PortChainService;
+import org.openstack4j.api.networking.ext.PortPairGroupService;
+import org.openstack4j.api.networking.ext.PortPairService;
+import org.openstack4j.api.networking.ext.ServiceFunctionChainService;
 import org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
@@ -52,11 +63,55 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
 
     private NeutronSfcSdnRedirectionApi redirApi;
 
+    @Mock
+    private V3 v3;
+
+    @Mock
+    private OSClientV3 osClient;
+
+    @Mock
+    private ServiceFunctionChainService sfcService;
+
+    @Mock
+    private NetworkingService networkingService;
+
+    @Mock
+    private PortService portService;
+
+    @Mock
+    private PortPairService portPairService;
+
+    @Mock
+    private PortPairGroupService portPairGroupService;
+
+    @Mock
+    private PortChainService portChainService;
+
     @Before
     @Override
-    public void setup() {
+    public void setup() throws Exception {
+        MockitoAnnotations.initMocks(this);
         super.setup();
-        this.redirApi = new NeutronSfcSdnRedirectionApi(this.txControl, this.em, null);
+        this.redirApi = new NeutronSfcSdnRedirectionApi(this.txControl, this.em, this.osClient);
+
+        Mockito.when(this.networkingService.port()).thenReturn(this.portService);
+        Mockito.when(this.sfcService.portchains()).thenReturn(this.portChainService);
+        Mockito.when(this.sfcService.portpairs()).thenReturn(this.portPairService);
+        Mockito.when(this.sfcService.portpairgroups()).thenReturn(this.portPairGroupService);
+        Mockito.when(this.osClient.sfc()).thenReturn(this.sfcService);
+        Mockito.when(this.osClient.networking()).thenReturn(this.networkingService);
+
+
+//        Mockito.when(this.v3.endpoint(Mockito.anyString())).thenReturn(this.v3);
+//        Mockito.when(this.v3.credentials(Mockito.anyString(), Mockito.anyString(),
+//                     Mockito.any(org.openstack4j.model.common.Identifier.class)))
+//                .thenReturn(this.v3);
+//        Mockito.when(this.v3.scopeToProject(Mockito.any(org.openstack4j.model.common.Identifier.class),
+//                                            Mockito.any(org.openstack4j.model.common.Identifier.class)))
+//        .thenReturn(this.v3);
+//        Mockito.when(this.v3.authenticate()).thenReturn(this.osClient);
+//
+//        PowerMockito.doReturn(this.v3).when(OSFactory.class, "builderV3");
     }
 
     // Inspection port tests
@@ -776,6 +831,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         DefaultNetworkPort ne = new DefaultNetworkPort();
 
         ne.setElementId(sfc.getElementId());
+        Mockito.when(this.portChainService.get(sfc.getElementId())).thenReturn(portChain);
 
         // Act
         List<NetworkElement> neResponseList = this.redirApi.getNetworkElements(ne);

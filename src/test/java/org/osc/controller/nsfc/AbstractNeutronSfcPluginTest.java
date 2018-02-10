@@ -40,7 +40,7 @@ public abstract class AbstractNeutronSfcPluginTest {
     public ExpectedException exception = ExpectedException.none();
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         this.em = InMemDB.getEntityManager();
         this.txControl.init(this.em);
         setupDataObjects();
