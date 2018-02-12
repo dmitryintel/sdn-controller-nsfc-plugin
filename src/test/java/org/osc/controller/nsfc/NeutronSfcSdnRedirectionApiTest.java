@@ -101,7 +101,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         Mockito.when(this.osClient.sfc()).thenReturn(this.sfcService);
         Mockito.when(this.osClient.networking()).thenReturn(this.networkingService);
 
-
 //        Mockito.when(this.v3.endpoint(Mockito.anyString())).thenReturn(this.v3);
 //        Mockito.when(this.v3.credentials(Mockito.anyString(), Mockito.anyString(),
 //                     Mockito.any(org.openstack4j.model.common.Identifier.class)))

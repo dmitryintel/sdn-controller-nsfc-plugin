@@ -249,7 +249,6 @@ public class RedirectionApiUtils {
     }
 
     public void validatePPGList(List<NetworkElement> portPairGroups) {
-        List<PortPairGroupEntity> ppgList = new ArrayList<>();
 
         for (NetworkElement ne : portPairGroups) {
             throwExceptionIfNullElementAndId(ne, "Port Pair Group Id");
@@ -260,7 +259,6 @@ public class RedirectionApiUtils {
                         String.format("Port Pair Group Id %s is already chained to SFC Id : %s ", ne.getElementId(),
                                 ppg.getServiceFunctionChain().getElementId()));
             }
-
         }
     }
 
