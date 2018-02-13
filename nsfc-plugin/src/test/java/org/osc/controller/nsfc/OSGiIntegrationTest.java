@@ -317,7 +317,6 @@ public class OSGiIntegrationTest {
         assertEquals(inspectionPort.getElementId(), tmp.getElementId());
     }
 
-    @Test
     public void verifyApiResponds() throws Exception {
 
         // Act.

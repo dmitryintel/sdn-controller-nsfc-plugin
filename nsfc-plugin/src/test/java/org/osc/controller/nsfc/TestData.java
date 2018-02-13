@@ -17,9 +17,26 @@
 package org.osc.controller.nsfc;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.openstack4j.api.Builders;
+import org.openstack4j.api.networking.PortService;
+import org.openstack4j.api.networking.ext.FlowClassifierService;
+import org.openstack4j.api.networking.ext.PortChainService;
+import org.openstack4j.api.networking.ext.PortPairGroupService;
+import org.openstack4j.api.networking.ext.PortPairService;
+import org.openstack4j.model.common.ActionResponse;
+import org.openstack4j.model.network.Port;
+import org.openstack4j.model.network.ext.FlowClassifier;
 import org.openstack4j.model.network.ext.PortChain;
+import org.openstack4j.model.network.ext.PortPair;
+import org.openstack4j.model.network.ext.PortPairGroup;
+import org.openstack4j.model.network.options.PortListOptions;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
@@ -56,7 +73,16 @@ class TestData {
     public static NetworkElementEntity inspected;
 
     public static PortChain portChain;
+    public static PortPair portPair;
+    public static PortPairGroup portPairGroup;
 
+    public static PortService portService = new MockPortService();
+    public static PortChainService portChainService = new MockPortChainService();
+    public static PortPairService portPairService = new MockPortPairService();
+    public static PortPairGroupService portPairGroupService = new MockPortPairGroupService();
+    public static FlowClassifierService flowClassifierService = new MockFlowClassifierService();
+
+    @SuppressWarnings("unchecked")
     public static void setupDataObjects() {
         ingress = new NetworkElementEntity();
         ingress.setElementId(IMAC1_STR + IMAC1_STR);
@@ -82,8 +108,84 @@ class TestData {
 
         inspectionHook = new InspectionHookEntity(inspected, sfc);
 
-        portChain = Builders.portChain().id(sfc.getElementId()).build();
+        portChain = Builders.portChain().build();
+        portPair = Builders.portPair().build();
+        portPairGroup = Builders.portPairGroup().build();
+    }
 
+    private static class CRUDMockService<T extends org.openstack4j.model.common.Resource> {
+        Map<String, T> dataObjects = new HashMap<String, T>();
+
+        public List<? extends T> list()  {
+            return new ArrayList<T>(this.dataObjects.values());
+        }
+
+        public T get(String id) {
+            if (id == null) {
+                throw new IllegalArgumentException("id cannot be null");
+            }
+            return this.dataObjects.get(id);
+        }
+
+        public T create(T object) {
+            String id;
+            do {
+				id = "" + System.currentTimeMillis();
+			} while (this.dataObjects.keySet().contains(id));
+
+            object.setId(id);
+            this.dataObjects.put(id, object);
+            return object;
+        }
+
+        public T update(String id, T object) {
+            if (id == null) {
+                throw new IllegalArgumentException("id cannot be null");
+            }
+
+            object.setId(id);
+            this.dataObjects.put(id, object);
+
+            return object;
+        }
+
+        public ActionResponse delete(String id) {
+            if (id == null) {
+                throw new IllegalArgumentException("id cannot be null");
+            }
+            this.dataObjects.remove(id);
+            return ActionResponse.actionSuccess();
+        }
+    }
+
+    private static class MockPortService extends CRUDMockService<Port> implements PortService {
+
+        @Override
+        public List<? extends Port> list(PortListOptions options) {
+            return list();
+        }
+
+        @Override
+        public List<? extends Port> create(List<? extends Port> ports) {
+            if (ports == null) {
+                throw new IllegalArgumentException("List of ports cannot be null");
+            }
+            return ports.stream().map(p -> create(p)).collect(toList());
+        }
+
+        @Override
+        public Port update(Port object) {
+            return update(object.getId(), object);
+        }
+
+    }
+    private static class MockPortChainService extends CRUDMockService<PortChain> implements PortChainService {
+    }
+    private static class MockPortPairGroupService extends CRUDMockService<PortPairGroup> implements PortPairGroupService {
+    }
+    private static class MockPortPairService extends CRUDMockService<PortPair> implements PortPairService {
+    }
+    private static class MockFlowClassifierService extends CRUDMockService<FlowClassifier> implements FlowClassifierService {
     }
 
 }

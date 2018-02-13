@@ -21,6 +21,7 @@ import static java.util.Collections.singletonList;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.persistence.EntityManager;
@@ -31,6 +32,8 @@ import javax.persistence.criteria.Root;
 
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.model.network.Port;
+import org.openstack4j.model.network.ext.PortChain;
+import org.openstack4j.model.network.ext.PortPairGroup;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
@@ -104,9 +107,12 @@ public class RedirectionApiUtils {
         return retVal;
     }
 
-    public PortPairGroupEntity findByPortPairgroupId(String ppgId) {
-
+    public PortPairGroupEntity findPPGEntityByPortPairgroupId(String ppgId) {
         return this.txControl.required(() -> this.em.find(PortPairGroupEntity.class, ppgId));
+    }
+
+    public PortPairGroup findByPortPairgroupId(String ppgId) {
+        return this.osClient.sfc().portpairgroups().get(ppgId);
     }
 
     public void removePortPairGroup(String ppgId) {
@@ -249,15 +255,19 @@ public class RedirectionApiUtils {
     }
 
     public void validatePPGList(List<NetworkElement> portPairGroups) {
+        List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
 
         for (NetworkElement ne : portPairGroups) {
             throwExceptionIfNullElementAndId(ne, "Port Pair Group Id");
-            PortPairGroupEntity ppg = findByPortPairgroupId(ne.getElementId());
+            PortPairGroup ppg = findByPortPairgroupId(ne.getElementId());
             throwExceptionIfCannotFindById(ppg, "Port Pair Group", ne.getElementId());
-            if (ppg.getServiceFunctionChain() != null) {
+
+            Optional<? extends PortChain> pcMaybe = portChains.stream().filter(pc -> pc.getPortPairGroups().contains(ppg.getId()))
+                                                    .findFirst();
+            if (pcMaybe.isPresent()) {
                 throw new IllegalArgumentException(
                         String.format("Port Pair Group Id %s is already chained to SFC Id : %s ", ne.getElementId(),
-                                ppg.getServiceFunctionChain().getElementId()));
+                                pcMaybe.get().getId()));
             }
         }
     }
@@ -267,7 +277,7 @@ public class RedirectionApiUtils {
 
         for (NetworkElement ne : portPairGroups) {
             throwExceptionIfNullElementAndId(ne, "Port Pair Group Id");
-            PortPairGroupEntity ppg = findByPortPairgroupId(ne.getElementId());
+            PortPairGroupEntity ppg = findPPGEntityByPortPairgroupId(ne.getElementId());
             throwExceptionIfCannotFindById(ppg, "Port Pair Group", ne.getElementId());
             if (ppg.getServiceFunctionChain() != null) {
                 throw new IllegalArgumentException(

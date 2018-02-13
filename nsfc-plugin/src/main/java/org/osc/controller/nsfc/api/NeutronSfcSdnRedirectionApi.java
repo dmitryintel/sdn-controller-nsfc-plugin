@@ -20,6 +20,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -102,7 +103,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         String inspectionPortGroupId = inspectionPort.getParentId();
         if (inspectionPortGroupId != null) {
-            PortPairGroupEntity ppg = this.utils.findByPortPairgroupId(inspectionPortGroupId);
+            PortPairGroupEntity ppg = this.utils.findPPGEntityByPortPairgroupId(inspectionPortGroupId);
 
             this.utils.throwExceptionIfCannotFindById(ppg, "port group", inspectionPortGroupId);
         }
@@ -254,8 +255,6 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
     // SFC methods
     @Override
     public NetworkElement registerNetworkElement(List<NetworkElement> portPairGroupList) throws Exception {
-        // NEW //////////////////////////////////////////
-
         //check for null or empty list
         this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group member list");
         this.utils.validatePPGList(portPairGroupList);
@@ -274,38 +273,23 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         PortChain portChainCreated = this.osClient.sfc().portchains().create(portChain);
 
-//        NetworkElementEntity retVal = new NetworkElementEntity(portChainCreated.getId(),
-//                                            new ArrayList<>(), new ArrayList<>(),
-//                                            portPairGroupList.get(0).getParentId());
-
-        // OLD //////////////////////////////////////////
-
-        //check for null or empty list
-        this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group member list");
-        ServiceFunctionChainEntity sfc = new ServiceFunctionChainEntity();
-
-        List<PortPairGroupEntity> ppgList = this.utils.validateAndAdd(portPairGroupList, sfc);
-
-        return this.txControl.required(() -> {
-            this.em.persist(sfc);
-            for(PortPairGroupEntity ppg : ppgList) {
-                this.em.merge(ppg);
-            }
-            return sfc;
-        });
-
+        return new NetworkElementEntity(portChainCreated.getId(),
+                                        new ArrayList<>(), new ArrayList<>(),
+                                        portPairGroupList.get(0).getParentId());
     }
 
     @Override
     public NetworkElement updateNetworkElement(NetworkElement serviceFunctionChain, List<NetworkElement> portPairGroupList)
             throws Exception {
-        // NEW //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Port Pair Group Service Function Chain Id");
         this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group update member list");
 
-
         PortChain portChain = this.osClient.sfc().portchains().get(serviceFunctionChain.getElementId());
         this.utils.throwExceptionIfCannotFindById(portChain, "Service Function Chain", serviceFunctionChain.getElementId());
+
+        portChain = Builders.portChain().from(portChain)
+                            .portPairGroups(Collections.emptyList()).build();
+        this.osClient.sfc().portchains().update(portChain.getId(), portChain);
         this.utils.validatePPGList(portPairGroupList);
 
         List<String> portPairGroupIds = portPairGroupList
@@ -315,66 +299,26 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         portChain = Builders.portChain().from(portChain).portPairGroups(portPairGroupIds).build();
         PortChain portChainUpdated = this.osClient.sfc().portchains().update(portChain.getId(), portChain);
-//        NetworkElementEntity retVal = new NetworkElementEntity(portChainUpdated.getId(),
-//                                                new ArrayList<>(), new ArrayList<>(),
-//                                                portPairGroupList.get(0).getParentId());
-
-        // OLD //////////////////////////////////////////
-        this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Port Pair Group Service Function Chain Id");
-        this.utils.throwExceptionIfNullOrEmptyNetworkElementList(portPairGroupList, "Port Pair Group update member list");
-
-        ServiceFunctionChainEntity sfc = this.utils.findBySfcId(serviceFunctionChain.getElementId());
-        this.utils.throwExceptionIfCannotFindById(sfc, "Service Function Chain", serviceFunctionChain.getElementId());
-
-        this.utils.validateAndClear(sfc);
-        List<PortPairGroupEntity> ppgList = this.utils.validateAndAdd(portPairGroupList, sfc);
-
-        return this.txControl.required(() -> {
-            this.em.merge(sfc);
-            for(PortPairGroupEntity ppg : ppgList) {
-                this.em.merge(ppg);
-            }
-            return sfc;
-        });
+        return new NetworkElementEntity(portChainUpdated.getId(),
+                                        new ArrayList<>(), new ArrayList<>(),
+                                        portPairGroupList.get(0).getParentId());
     }
 
     @Override
     public void deleteNetworkElement(NetworkElement serviceFunctionChain) throws Exception {
-
-        // NEW //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
         PortChain portChain = this.osClient.sfc().portchains().get(serviceFunctionChain.getElementId());
-        this.utils.throwExceptionIfNull(portChain, PortChain.class);
+        this.utils.throwExceptionIfCannotFindById(portChain,"Service Function Chain", serviceFunctionChain.getElementId());
         ActionResponse response = this.osClient.sfc().portchains().delete(serviceFunctionChain.getElementId());
 
         if (!response.isSuccess()) {
             throw new Exception("Exception deleting SFC " + serviceFunctionChain.getElementId()
                         + ". Status " + response.getCode() + "\nMessage:\n" + response.getFault());
         }
-
-        // OLD //////////////////////////////////////////
-        this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
-        ServiceFunctionChainEntity sfc = this.utils.findBySfcId(serviceFunctionChain.getElementId());
-        this.utils.throwExceptionIfCannotFindById(sfc, "Service Function Chain", serviceFunctionChain.getElementId());
-
-        this.txControl.required(() -> {
-            //For delete fetch sfc in a transaction
-            ServiceFunctionChainEntity sfcToDel = this.em.find(ServiceFunctionChainEntity.class,
-                    serviceFunctionChain.getElementId());
-
-            for (PortPairGroupEntity ppg : sfcToDel.getPortPairGroups()) {
-                ppg.setServiceFunctionChain(null);
-                this.em.merge(ppg);
-            }
-            this.em.remove(sfcToDel);
-            return null;
-        });
     }
 
     @Override
     public List<NetworkElement> getNetworkElements(NetworkElement serviceFunctionChain) throws Exception {
-
-        // NEW //////////////////////////////////////////
         this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
 
         PortChain portChain = this.osClient.sfc().portchains().get(serviceFunctionChain.getElementId());
@@ -418,15 +362,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         }
 
         sfcFound.setPortPairGroups(portPairGroupEntities);
-        // ... and return
-        // return new ArrayList<>(portPairGroupEntities);
-
-        // OLD //////////////////////////////////////////
-        this.utils.throwExceptionIfNullElementAndId(serviceFunctionChain, "Service Function Chain Id");
-        ServiceFunctionChainEntity sfc = this.utils.findBySfcId(serviceFunctionChain.getElementId());
-        this.utils.throwExceptionIfCannotFindById(sfc, "Service Function Chain", serviceFunctionChain.getElementId());
-
-        return new ArrayList<>(sfc.getPortPairGroups());
+         return new ArrayList<>(portPairGroupEntities);
     }
 
     // Unsupported operations in SFC

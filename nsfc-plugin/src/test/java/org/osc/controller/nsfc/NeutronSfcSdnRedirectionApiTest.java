@@ -17,6 +17,8 @@
 package org.osc.controller.nsfc;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 import static org.osc.controller.nsfc.TestData.*;
 import static org.osc.sdk.controller.FailurePolicyType.NA;
@@ -37,14 +39,15 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.api.client.IOSClientBuilder.V3;
 import org.openstack4j.api.networking.NetworkingService;
 import org.openstack4j.api.networking.PortService;
-import org.openstack4j.api.networking.ext.PortChainService;
-import org.openstack4j.api.networking.ext.PortPairGroupService;
-import org.openstack4j.api.networking.ext.PortPairService;
 import org.openstack4j.api.networking.ext.ServiceFunctionChainService;
+import org.openstack4j.model.network.ext.PortChain;
+import org.openstack4j.model.network.ext.PortPair;
+import org.openstack4j.model.network.ext.PortPairGroup;
 import org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
@@ -78,15 +81,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     @Mock
     private PortService portService;
 
-    @Mock
-    private PortPairService portPairService;
-
-    @Mock
-    private PortPairGroupService portPairGroupService;
-
-    @Mock
-    private PortChainService portChainService;
-
     @Before
     @Override
     public void setup() throws Exception {
@@ -95,22 +89,11 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         this.redirApi = new NeutronSfcSdnRedirectionApi(this.txControl, this.em, this.osClient);
 
         Mockito.when(this.networkingService.port()).thenReturn(this.portService);
-        Mockito.when(this.sfcService.portchains()).thenReturn(this.portChainService);
-        Mockito.when(this.sfcService.portpairs()).thenReturn(this.portPairService);
-        Mockito.when(this.sfcService.portpairgroups()).thenReturn(this.portPairGroupService);
+        Mockito.when(this.sfcService.portchains()).thenReturn(portChainService);
+        Mockito.when(this.sfcService.portpairs()).thenReturn(portPairService);
+        Mockito.when(this.sfcService.portpairgroups()).thenReturn(portPairGroupService);
         Mockito.when(this.osClient.sfc()).thenReturn(this.sfcService);
         Mockito.when(this.osClient.networking()).thenReturn(this.networkingService);
-
-//        Mockito.when(this.v3.endpoint(Mockito.anyString())).thenReturn(this.v3);
-//        Mockito.when(this.v3.credentials(Mockito.anyString(), Mockito.anyString(),
-//                     Mockito.any(org.openstack4j.model.common.Identifier.class)))
-//                .thenReturn(this.v3);
-//        Mockito.when(this.v3.scopeToProject(Mockito.any(org.openstack4j.model.common.Identifier.class),
-//                                            Mockito.any(org.openstack4j.model.common.Identifier.class)))
-//        .thenReturn(this.v3);
-//        Mockito.when(this.v3.authenticate()).thenReturn(this.osClient);
-//
-//        PowerMockito.doReturn(this.v3).when(OSFactory.class, "builderV3");
     }
 
     // Inspection port tests
@@ -197,7 +180,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
 
         RedirectionApiUtils utils = new RedirectionApiUtils(this.em, this.txControl, null);
 
-        ppg = utils.findByPortPairgroupId(portGroupId);
+        ppg = utils.findPPGEntityByPortPairgroupId(portGroupId);
         InspectionPortElement inspectionPortElement2 = new InspectionPortEntity(null, ppg,
                 new NetworkElementEntity("IngressFoo", asList("IngressMac"), asList("IngressIP"), null),
                 new NetworkElementEntity("EgressFoo", asList("EgressMac"), asList("EgressIP"), null));
@@ -519,13 +502,13 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistInspectionPortAndSfc();
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
         DefaultNetworkPort ne = new DefaultNetworkPort();
-        ne.setElementId(ppg.getElementId());
+        ne.setElementId(portPairGroup.getId());
         neList.add(ne);
 
         this.exception.expect(IllegalArgumentException.class);
         this.exception
                 .expectMessage(String.format(String.format("Port Pair Group Id %s is already chained to SFC Id : %s ",
-                        ne.getElementId(), ppg.getServiceFunctionChain().getElementId())));
+                        ne.getElementId(), portChain.getId())));
 
         // Act
         this.redirApi.registerNetworkElement(neList);
@@ -537,18 +520,13 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistInspectionPort();
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
         DefaultNetworkPort ne = new DefaultNetworkPort();
-        ne.setElementId(ppg.getElementId());
+        ne.setElementId(portPairGroup.getId());
         neList.add(ne);
 
         // Act
         NetworkElement neResponse=  this.redirApi.registerNetworkElement(neList);
 
-        // Assert
-        this.txControl.required(() -> {
-            sfc = this.em.find(ServiceFunctionChainEntity.class, neResponse.getElementId());
-            assertNotNull("SFC is not to be found after creation", sfc);
-            return null;
-        });
+        assertNotNull(portChainService.get(neResponse.getElementId()));
     }
 
     @Test
@@ -662,10 +640,10 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         DefaultNetworkPort sfcTest = new DefaultNetworkPort();
         DefaultNetworkPort ne = new DefaultNetworkPort();
 
-        sfcTest.setElementId(sfc.getElementId());
+        sfcTest.setElementId(portChain.getId());
 
         ne.setElementId("BadPpgId");
-        ne.setParentId(sfc.getElementId());
+        ne.setParentId(portChain.getId());
         neList.add(ne);
 
         this.exception.expect(IllegalArgumentException.class);
@@ -685,49 +663,50 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         DefaultNetworkPort ne = new DefaultNetworkPort();
         DefaultNetworkPort sfcTest = new DefaultNetworkPort();
 
-        sfcTest.setElementId(sfc.getElementId());
+        sfcTest.setElementId(portChain.getId());
 
-        ne.setElementId(ppg.getElementId());
+        ne.setElementId(portPairGroup.getId());
         neList.add(ne);
 
         // Act
         NetworkElement sfcReturn = this.redirApi.updateNetworkElement(sfcTest, neList);
-        Assert.assertEquals("Return Sfc is not equal tosfc", sfc.getElementId(), sfcReturn.getElementId());
+        Assert.assertEquals("Return Sfc is not equal tosfc", portChain.getId(), sfcReturn.getElementId());
     }
 
     @Test
     public void testApi_UpdateNetworkElement_VerifySuccessful() throws Exception {
         // Arrange
-        List<PortPairGroupEntity> ppgList = persistNInspectionPort(4);
-        ServiceFunctionChainEntity sfcPersist = persistNppgsInSfc(ppgList);
+        List<PortPairGroup> ppgList = persistNInspectionPort(4);
+        PortChain pChain = Builders.portChain()
+                .portPairGroups(ppgList.stream().map(PortPairGroup::getId).collect(toList()))
+                .build();
+        pChain = portChainService.create(pChain);
 
         List<NetworkElement> neReverseList = new ArrayList<NetworkElement>();
         DefaultNetworkPort sfcTest = new DefaultNetworkPort();
 
-        sfcTest.setElementId(sfcPersist.getElementId());
+        sfcTest.setElementId(pChain.getId());
 
         Collections.reverse(ppgList);
         List<String> ppgListSrc = new ArrayList<String>();
-        for(PortPairGroupEntity ppg_local : ppgList) {
+        for(PortPairGroup ppg_local : ppgList) {
             DefaultNetworkPort ne = new DefaultNetworkPort();
-            ne.setElementId(ppg_local.getElementId());
-            ne.setParentId(sfcPersist.getElementId());
+            ne.setElementId(ppg_local.getId());
+            ne.setParentId(pChain.getId());
             neReverseList.add(ne);
-            ppgListSrc.add(ppg_local.getElementId());
+            ppgListSrc.add(ppg_local.getId());
         }
 
         // Act
         NetworkElement neResponse = this.redirApi.updateNetworkElement(sfcTest, neReverseList);
-        this.txControl.required(() -> {
-            ServiceFunctionChainEntity sfcTarget = this.em.find(ServiceFunctionChainEntity.class, neResponse.getElementId());
-            assertNotNull("SFC is not to be found after creation", sfcTarget);
-            List<String> ppgListTarget = new ArrayList<String>();
-            for(PortPairGroupEntity ppg_local : sfcTarget.getPortPairGroups()) {
-                ppgListTarget.add(ppg_local.getElementId());
-            }
-            Assert.assertEquals("The list of port pair group ids is different than expected", ppgListSrc, ppgListTarget);
-            return null;
-        });
+
+        PortChain sfcTarget = portChainService.get(neResponse.getElementId());
+        assertNotNull("SFC is not to be found after creation", sfcTarget);
+        List<String> ppgListTarget = new ArrayList<String>();
+        for(String ppgId : sfcTarget.getPortPairGroups()) {
+            ppgListTarget.add(ppgId);
+        }
+        Assert.assertEquals("The list of port pair group ids is different than expected", ppgListSrc, ppgListTarget);
     }
 
     @Test
@@ -771,19 +750,16 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     public void testApi_DeleteNetworkElement_VerifySuccessful() throws Exception {
         // Arrange
         persistInspectionPortAndSfc();
-        String localSfcId = sfc.getElementId();
+        String localSfcId = portChain.getId();
 
         DefaultNetworkPort ne = new DefaultNetworkPort();
 
-        ne.setElementId(sfc.getElementId());
+        ne.setElementId(portChain.getId());
 
         // Act
         this.redirApi.deleteNetworkElement(ne);
-        this.txControl.required(() -> {
-            ServiceFunctionChainEntity sfc_t = this.em.find(ServiceFunctionChainEntity.class, localSfcId);
-            assertNull("SFC still exist after deletion", sfc_t);
-            return null;
-        });
+
+        assertNull(portChainService.get(localSfcId));
     }
 
     @Test
@@ -829,8 +805,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
 
         DefaultNetworkPort ne = new DefaultNetworkPort();
 
-        ne.setElementId(sfc.getElementId());
-        Mockito.when(this.portChainService.get(sfc.getElementId())).thenReturn(portChain);
+        ne.setElementId(portChain.getId());
 
         // Act
         List<NetworkElement> neResponseList = this.redirApi.getNetworkElements(ne);
@@ -839,44 +814,26 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertNotNull("SFC chain List is Empty", neResponseList);
     }
 
-    private List<PortPairGroupEntity> persistNInspectionPort(int count) {
-        List<PortPairGroupEntity> ppgList = new ArrayList<PortPairGroupEntity>();
+    private List<PortPairGroup> persistNInspectionPort(int count) {
+        List<PortPairGroup> ppgList = new ArrayList<>();
         for(int i=0;i<count;i++) {
-            InspectionPortEntity insp = new InspectionPortEntity();
-            PortPairGroupEntity ppg_n= new PortPairGroupEntity();
-
-            this.txControl.required(() -> {
-                    this.em.persist(ppg_n);
-
-                    insp.setPortPairGroup(ppg_n);
-                    this.em.persist(insp);
-
-                    ppg_n.getPortPairs().add(insp);
-                    this.em.merge(ppg_n);
-                    return null;
-            });
+            PortPair inspPort_n = Builders.portPair().build();
+            inspPort_n = portPairService.create(inspPort_n);
+            PortPairGroup ppg_n= Builders.portPairGroup()
+                                    .portPairs(singletonList(inspPort_n.getId())).build();
+            ppg_n = portPairGroupService.create(ppg_n);
             ppgList.add(ppg_n);
         }
         return ppgList;
     }
 
-    private ServiceFunctionChainEntity persistNppgsInSfc(List<PortPairGroupEntity> ppgList) {
-
-        return this.txControl.required(() -> {
-            for(PortPairGroupEntity ppgCurr : ppgList) {
-                sfc.getPortPairGroups().add(ppgCurr);
-                this.em.persist(sfc);
-
-                ppgCurr.setServiceFunctionChain(sfc);
-                this.em.merge(ppgCurr);
-            }
-
-            return sfc;
-        });
-    }
-
     private ServiceFunctionChainEntity persistInspectionPortAndSfc() {
         persistInspectionPort();
+        portChain = Builders.portChain()
+                .portPairGroups(singletonList(portPairGroup.getId()))
+                .build();
+        portChain = portChainService.create(portChain);
+
         return this.txControl.required(() -> {
             sfc.getPortPairGroups().add(ppg);
             this.em.persist(sfc);

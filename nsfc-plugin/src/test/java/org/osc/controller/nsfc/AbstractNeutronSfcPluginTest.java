@@ -16,6 +16,7 @@
  *******************************************************************************/
 package org.osc.controller.nsfc;
 
+import static java.util.Collections.singletonList;
 import static org.osc.controller.nsfc.TestData.*;
 
 import javax.persistence.EntityManager;
@@ -26,6 +27,7 @@ import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.mockito.Answers;
 import org.mockito.Mock;
+import org.openstack4j.api.Builders;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 
@@ -63,11 +65,19 @@ public abstract class AbstractNeutronSfcPluginTest {
             this.em.persist(inspected);
 
             this.em.persist(inspectionHook);
+
             return inspectionHook;
         });
     }
 
     protected InspectionPortEntity persistInspectionPort() {
+
+        portPair = portPairService.create(portPair);
+        portPairGroup = Builders.portPairGroup()
+                .portPairs(singletonList(portPair.getId()))
+                .build();
+        portPairGroup = portPairGroupService.create(portPairGroup);
+
         return this.txControl.required(() -> {
             this.em.persist(ppg);
 
