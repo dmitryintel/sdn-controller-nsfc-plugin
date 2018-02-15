@@ -22,9 +22,7 @@
       <Pattern>%d [%-5p| %t| %c{1}]: %m%n</Pattern>
     </layout>
   </appender>
-  
-  <logger name="org.hibernate" level="ERROR"/>
-   
+
   <root level="warn">
     <appender-ref ref="consoleAppender" />
   </root>

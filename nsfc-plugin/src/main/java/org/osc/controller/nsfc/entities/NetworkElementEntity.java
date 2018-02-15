@@ -16,53 +16,21 @@
  *******************************************************************************/
 package org.osc.controller.nsfc.entities;
 
-import static javax.persistence.FetchType.EAGER;
-
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.CollectionTable;
-import javax.persistence.Column;
-import javax.persistence.ElementCollection;
-import javax.persistence.Entity;
-import javax.persistence.ForeignKey;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
-import javax.persistence.Transient;
-
-import org.hibernate.annotations.Fetch;
-import org.hibernate.annotations.FetchMode;
 import org.osc.sdk.controller.element.NetworkElement;
 
-@Entity
-@Table(name = "NETWORK_ELEMENT")
 public class NetworkElementEntity implements NetworkElement {
 
-    @Id
-    @Column(name = "element_id", unique = true)
     private String elementId;
 
     // TODO : for SFC functionality
-    @Transient
     private String parentId;
 
-    @ElementCollection(fetch = EAGER)
-    @Fetch(FetchMode.SELECT)
-    @CollectionTable(name = "NETWORK_ELEMENT_MACADDRESSES",
-            joinColumns = @JoinColumn(name = "network_element_fk"),
-            foreignKey = @ForeignKey(name = "FK_NETWORK_ELEMENT_MACADDRESSES_NETWORK_ELEMENT"))
     private List<String> macAddresses;
 
-    @ElementCollection(fetch = EAGER)
-    @CollectionTable(name = "NETWORK_ELEMENT_PORTIPS",
-            joinColumns = @JoinColumn(name = "network_element_fk"),
-            foreignKey = @ForeignKey(name = "FK_NETWORK_ELEMENT_PORTIPS_NETWORK_ELEMENT"))
     private List<String> portIPs;
 
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = false, fetch = EAGER, optional = true)
-    @JoinColumn(name = "inspection_hook_fk", nullable = true, updatable = true)
     private InspectionHookEntity inspectionHook;
 
     public NetworkElementEntity() {

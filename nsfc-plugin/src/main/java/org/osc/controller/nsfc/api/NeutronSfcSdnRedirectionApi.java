@@ -24,15 +24,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.persistence.EntityManager;
-
 import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.model.common.ActionResponse;
 import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
-import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
@@ -46,7 +43,6 @@ import org.osc.sdk.controller.element.InspectionHookElement;
 import org.osc.sdk.controller.element.InspectionPortElement;
 import org.osc.sdk.controller.element.NetworkElement;
 import org.osc.sdk.controller.exception.NetworkPortNotFoundException;
-import org.osgi.service.transaction.control.TransactionControl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,18 +50,14 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
     private static final Logger LOG = LoggerFactory.getLogger(NeutronSfcSdnRedirectionApi.class);
 
-    private TransactionControl txControl;
-    private EntityManager em;
     private RedirectionApiUtils utils;
     private OSClientV3 osClient;
 
     public NeutronSfcSdnRedirectionApi() {
     }
 
-    public NeutronSfcSdnRedirectionApi(TransactionControl txControl, EntityManager em, OSClientV3 osClient) {
-        this.txControl = txControl;
-        this.em = em;
-        this.utils = new RedirectionApiUtils(em, txControl, osClient);
+    public NeutronSfcSdnRedirectionApi(OSClientV3 osClient) {
+        this.utils = new RedirectionApiUtils(osClient);
         this.osClient = osClient;
     }
 
@@ -77,22 +69,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             return null;
         }
 
-        String portId = inspectionPort.getElementId();
-
-        if (portId != null) {
-            try {
-                return this.txControl.required(() -> this.utils.txInspectionPortEntityById(portId));
-            } catch (Exception e) {
-                LOG.warn("Failed to retrieve InspectionPort by id! Trying by ingress and egress " + inspectionPort);
-            }
-        } else {
-            LOG.warn("Failed to retrieve InspectionPort by id! Trying by ingress and egress " + inspectionPort);
-        }
-
-        NetworkElement ingress = inspectionPort.getIngressPort();
-        NetworkElement egress = inspectionPort.getEgressPort();
-
-        return this.utils.findInspectionPortByNetworkElements(ingress, egress);
+        return null; // TODO (Dmitry)
     }
 
     @Override
@@ -100,39 +77,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         if (inspectionPort == null) {
             throw new IllegalArgumentException("Attempt to register null InspectionPort");
         }
-
-        String inspectionPortGroupId = inspectionPort.getParentId();
-        if (inspectionPortGroupId != null) {
-            PortPairGroupEntity ppg = this.utils.findPPGEntityByPortPairgroupId(inspectionPortGroupId);
-
-            this.utils.throwExceptionIfCannotFindById(ppg, "port group", inspectionPortGroupId);
-        }
-
-        return this.txControl.required(() -> {
-
-            // must be within this transaction, because if the DB retrievals inside makeInspectionPortEntry
-            // are inside the required() call themselves. That makes them a part of a separate transaction
-
-            NetworkElement ingress = inspectionPort.getIngressPort();
-            NetworkElement egress = inspectionPort.getEgressPort();
-            InspectionPortEntity inspectionPortEntity = this.utils.findInspectionPortByNetworkElements(ingress, egress);
-
-            if (inspectionPortEntity == null) {
-                inspectionPortEntity = this.utils.makeInspectionPortEntity(inspectionPort);
-            }
-
-            PortPairGroupEntity ppg = inspectionPortEntity.getPortPairGroup();
-            if (inspectionPortEntity.getParentId() == null) {
-                ppg = new PortPairGroupEntity();
-                ppg.getPortPairs().add(inspectionPortEntity);
-                this.em.persist(ppg);
-                inspectionPortEntity.setPortPairGroup(ppg);
-            }
-
-            inspectionPortEntity = this.em.merge(inspectionPortEntity);
-
-            return inspectionPortEntity;
-        });
+        return null; // TODO (Dmitry)
     }
 
     @Override
@@ -142,23 +87,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             LOG.warn("Attempt to remove a null Inspection Port");
             return;
         }
-
-        InspectionPortElement foundInspectionPort = getInspectionPort(inspectionPort);
-
-        if (foundInspectionPort != null) {
-            PortPairGroupEntity ppg = ((InspectionPortEntity) foundInspectionPort).getPortPairGroup();
-            this.utils.removeSingleInspectionPort(foundInspectionPort.getElementId());
-            ppg.getPortPairs().remove(foundInspectionPort);
-            if(ppg.getPortPairs().isEmpty()) {
-                this.utils.removePortPairGroup(ppg.getElementId());
-            }
-        } else {
-            NetworkElement ingress = inspectionPort.getIngressPort();
-            NetworkElement egress = inspectionPort.getEgressPort();
-
-            LOG.warn(String.format("Attempt to remove nonexistent Inspection Port for ingress %s and egress %s",
-                    ingress, egress));
-        }
+        // TODO (Dmitry)
     }
 
     // Inspection Hooks methods
@@ -167,30 +96,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             TagEncapsulationType encType, Long order, FailurePolicyType failurePolicyType)
             throws NetworkPortNotFoundException, Exception {
 
-        this.utils.throwExceptionIfNullElementAndId(inspectedPort, "Inspected port");
-        this.utils.throwExceptionIfNullElementAndId(inspectionPort, "Inspection port");
-
-        LOG.info(String.format("Installing Inspection Hook for (Inspected Port %s ; Inspection Port %s):",
-                inspectedPort, inspectionPort));
-
-        ServiceFunctionChainEntity sfc = this.utils.findBySfcId(inspectionPort.getElementId());
-        this.utils.throwExceptionIfCannotFindById(sfc, "Service Function Chain", inspectionPort.getElementId());
-
-        InspectionHookEntity inspectionHookEntity = this.utils.findInspHookByInspectedAndPort(inspectedPort, sfc);
-        if (inspectionHookEntity != null) {
-            String msg = String.format("Found existing inspection hook (Inspected %s ; Inspection Port %s)",
-                    inspectedPort, inspectionPort);
-            LOG.error(msg + " " + inspectionHookEntity);
-            throw new IllegalStateException(msg);
-        }
-
-        InspectionHookEntity retValEntity = this.txControl.required(() -> {
-
-            InspectionHookEntity createdHookEntity = this.utils.makeInspectionHookEntity(inspectedPort, sfc);
-            return this.em.merge(createdHookEntity);
-        });
-
-        return retValEntity.getHookId();
+        return null; // TODO (Dmitry)
     }
 
     @Override
@@ -199,37 +105,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             throw new IllegalArgumentException("Attempt to update a null Inspection Hook!");
         }
         LOG.info(String.format("Updating Inspection Hook %s:", providedHook));
-
-        NetworkElement providedInspectedPort = providedHook.getInspectedPort();
-        InspectionPortElement providedInspectionPort = providedHook.getInspectionPort();
-
-        this.utils.throwExceptionIfNullElementAndId(providedInspectedPort, "Inspected port");
-        this.utils.throwExceptionIfNullElementAndId(providedInspectionPort, "Inspection port");
-
-        InspectionHookEntity providedHookEntity = (InspectionHookEntity) getInspectionHook(providedHook.getHookId());
-        this.utils.throwExceptionIfCannotFindById(providedHookEntity, "Inspection Hook", providedHook.getHookId());
-
-        NetworkElementEntity providedInspectedPortEntity = providedHookEntity.getInspectedPort();
-
-        if (!providedInspectedPortEntity.getElementId().equals(providedInspectedPort.getElementId())) {
-            throw new IllegalStateException(
-                    String.format("Cannot update Inspected Port from %s to %s for the Inspection hook %s",
-                            providedInspectedPortEntity.getElementId(), providedInspectedPort.getElementId(),
-                            providedHookEntity.getHookId()));
-        }
-        ServiceFunctionChainEntity newSfc = this.utils.findBySfcId(providedInspectionPort.getElementId());
-        this.utils.throwExceptionIfCannotFindById(newSfc, "Service Function Chain",
-                providedInspectionPort.getElementId());
-
-        this.txControl.required(() -> {
-            providedHookEntity.setServiceFunctionChain(newSfc);
-            newSfc.getInspectionHooks().add(providedHookEntity);
-
-            this.em.merge(newSfc);
-            this.em.merge(providedHookEntity);
-            return null;
-        });
-
+        // TODO (Dmitry)
     }
 
     @Override
@@ -249,7 +125,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             return null;
         }
 
-        return this.txControl.required(() -> this.em.find(InspectionHookEntity.class, inspectionHookId));
+        return null;  // TODO (Dmitry)
     }
 
     // SFC methods
@@ -362,7 +238,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         }
 
         sfcFound.setPortPairGroups(portPairGroupEntities);
-         return new ArrayList<>(portPairGroupEntities);
+        return new ArrayList<>(portPairGroupEntities);
     }
 
     // Unsupported operations in SFC
@@ -432,10 +308,6 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
     @Override
     public void close() throws Exception {
         LOG.info("Closing connection to the database");
-        this.txControl.required(() -> {
-            this.em.close();
-            return null;
-        });
     }
 
 }

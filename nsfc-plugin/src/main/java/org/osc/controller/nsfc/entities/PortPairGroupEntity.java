@@ -19,35 +19,14 @@ package org.osc.controller.nsfc.entities;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-
-import org.hibernate.annotations.GenericGenerator;
 import org.osc.sdk.controller.element.NetworkElement;
 
-@Entity
-@Table(name = "PORT_PAIR_GROUP")
 public class PortPairGroupEntity implements NetworkElement {
 
-    @Id
-    @GeneratedValue(generator = "uuid")
-    @GenericGenerator(name = "uuid", strategy = "uuid2")
-    @Column(name = "element_id", unique = true)
     private String elementId;
 
-    @OneToMany(mappedBy = "portPairGroup", fetch = FetchType.EAGER)
     private List<InspectionPortEntity> portPairs = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "sfc_fk", foreignKey = @ForeignKey(name = "FK_PPG_SFC"))
     private ServiceFunctionChainEntity serviceFunctionChain;
 
     public PortPairGroupEntity() {

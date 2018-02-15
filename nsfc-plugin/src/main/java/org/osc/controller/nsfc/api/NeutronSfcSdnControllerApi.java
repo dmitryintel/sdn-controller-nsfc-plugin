@@ -16,16 +16,9 @@
  *******************************************************************************/
 package org.osc.controller.nsfc.api;
 
-import static java.util.Collections.singletonMap;
 import static org.osc.sdk.controller.Constants.*;
-import static org.osgi.service.jdbc.DataSourceFactory.*;
 
-import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.Properties;
-
-import javax.persistence.EntityManager;
-import javax.sql.DataSource;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.openstack4j.api.OSClient.OSClientV3;
@@ -39,11 +32,6 @@ import org.osc.sdk.controller.api.SdnControllerApi;
 import org.osc.sdk.controller.api.SdnRedirectionApi;
 import org.osc.sdk.controller.element.VirtualizationConnectorElement;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.jdbc.DataSourceFactory;
-import org.osgi.service.jpa.EntityManagerFactoryBuilder;
-import org.osgi.service.transaction.control.TransactionControl;
-import org.osgi.service.transaction.control.jpa.JPAEntityManagerProviderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,27 +46,10 @@ import org.slf4j.LoggerFactory;
                  SUPPORT_NEUTRON_SFC + ":Boolean=true"})
 public class NeutronSfcSdnControllerApi implements SdnControllerApi {
 
-    @Reference(target = "(osgi.local.enabled=true)")
-    private TransactionControl txControl;
-
-    @Reference(target = "(osgi.unit.name=nsfc-mgr)")
-    private EntityManagerFactoryBuilder builder;
-
-    @Reference(target = "(osgi.jdbc.driver.class=org.h2.Driver)")
-    private DataSourceFactory jdbcFactory;
-
-    @Reference(target = "(osgi.local.enabled=true)")
-    private JPAEntityManagerProviderFactory resourceFactory;
-
     private static final Logger LOG = LoggerFactory.getLogger(NeutronSfcSdnControllerApi.class);
 
     private static final String VERSION = "0.1";
     private static final String NAME = "Neutron-sfc";
-
-    private static final String DB_URL_PREFIX = "jdbc:h2:./nsfcPlugin_";
-    private static final String DB_USER = "admin";
-    private static final String DB_PASSWORD = "admin123";
-    private static final String URL_OPTS = ";MVCC\\=TRUE;LOCK_TIMEOUT\\=10000;MV_STORE=FALSE;";
 
     private static final String AUTH_URL_LOCAL = "/v3";
     private static final int AUTH_URL_PORT = 5000;
@@ -111,27 +82,7 @@ public class NeutronSfcSdnControllerApi implements SdnControllerApi {
             throw new IllegalArgumentException("Non-null VC with non-empty name required!");
         }
 
-        Properties props = new Properties();
-
-        props.setProperty(JDBC_URL, DB_URL_PREFIX + vc.getProviderIpAddress() + URL_OPTS);
-
-        props.setProperty(JDBC_USER, DB_USER);
-        props.setProperty(JDBC_PASSWORD, DB_PASSWORD);
-
-        DataSource ds = null;
-        try {
-            ds = this.jdbcFactory.createDataSource(props);
-        } catch (SQLException e) {
-            LOG.error(e.getMessage(), e);
-            throw new IllegalStateException(e.getMessage(), e);
-        }
-
-        EntityManager em = this.resourceFactory
-                .getProviderFor(this.builder, singletonMap("javax.persistence.nonJtaDataSource", (Object) ds), null)
-                .getResource(this.txControl);
-
-
-        return new NeutronSfcSdnRedirectionApi(this.txControl, em, os);
+        return new NeutronSfcSdnRedirectionApi(os);
     }
 
     @Override
