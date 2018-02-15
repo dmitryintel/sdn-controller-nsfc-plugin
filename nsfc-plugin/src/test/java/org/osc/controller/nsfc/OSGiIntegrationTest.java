@@ -16,10 +16,13 @@
  *******************************************************************************/
 package org.osc.controller.nsfc;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static java.util.Arrays.asList;
+import static org.junit.Assert.*;
 import static org.ops4j.pax.exam.CoreOptions.*;
+import static org.osc.sdk.controller.FailurePolicyType.NA;
+import static org.osc.sdk.controller.TagEncapsulationType.VLAN;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -27,31 +30,75 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
+import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.api.client.IOSClientBuilder.V3;
+import org.openstack4j.model.common.Identifier;
+import org.openstack4j.model.network.ext.FlowClassifier;
+import org.openstack4j.model.network.ext.PortChain;
+import org.openstack4j.model.network.ext.PortPair;
+import org.openstack4j.model.network.ext.PortPairGroup;
+import org.openstack4j.openstack.OSFactory;
 import org.ops4j.pax.exam.Option;
-import org.ops4j.pax.exam.junit.PaxExam;
-import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
-import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.PathUtils;
 import org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi;
+import org.osc.controller.nsfc.entities.InspectionPortEntity;
+import org.osc.controller.nsfc.entities.NetworkElementEntity;
+import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
 import org.osc.sdk.controller.api.SdnControllerApi;
 import org.osc.sdk.controller.api.SdnRedirectionApi;
+import org.osc.sdk.controller.element.Element;
 import org.osc.sdk.controller.element.InspectionHookElement;
+import org.osc.sdk.controller.element.NetworkElement;
 import org.osc.sdk.controller.element.VirtualizationConnectorElement;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@RunWith(PaxExam.class)
-@ExamReactorStrategy(PerClass.class)
+//@RunWith(PaxExam.class)
+//@ExamReactorStrategy(PerClass.class)
 public class OSGiIntegrationTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(OSGiIntegrationTest.class);
 
     private static final String DOMAIN_NAME = "default";
     private static final String PASSWORD = "admin123";
     private static final String USERNAME = "admin";
     private static final String TENANT = "admin";
     private static final String TEST_CONTROLLER_IP = "10.3.241.221";
+
+    private static final String INGRESS0_ID = "969ed382-022e-4477-bcaf-ef92666a3641";
+    private static final String EGRESS0_ID = "49db7011-34d5-4ea7-96e2-6549fbd3df66";
+
+    private static final String INGRESS0_IP = "192.168.1.66";
+    private static final String EGRESS0_IP = "172.16.0.13";
+
+    private static final String INGRESS0_MAC = "fa:16:3e:63:3c:bf";
+    private static final String EGRESS0_MAC = "fa:16:3e:63:3c:bf";
+
+    private static final String INGRESS1_ID = "c3a45f6e-4390-4183-86a9-a201f5e799f7";
+    private static final String EGRESS1_ID = "f5e75b90-6b81-41dc-a1d4-189c4e8bb875";
+
+    private static final String INGRESS1_IP = "192.168.1.13";
+    private static final String EGRESS1_IP = "172.16.0.11";
+
+    private static final String INGRESS1_MAC = "fa:16:3e:72:83:ab";
+    private static final String EGRESS1_MAC = "fa:16:3e:59:23:35";
+
+    private static final String INSPECTED_ID = "5db6a898-956f-424f-8371-abcf7a20aa03";
+    private static final String INSPECTED_IP = "172.16.0.3";
+    private static final String INSPECTED_MAC = "fa:16:3e:72:83:ab";
+
+    // just for verifying stuff
+    private OSClientV3 osClient;
+    private NetworkElementEntity ingressEntity0;
+    private NetworkElementEntity egressEntity0;
+    private InspectionPortEntity inspectionPortEntity0;
+    private NetworkElementEntity ingressEntity1;
+    private NetworkElementEntity egressEntity1;
+    private InspectionPortEntity inspectionPortEntity1;
 
     @Inject
     BundleContext context;
@@ -184,7 +231,7 @@ public class OSGiIntegrationTest {
                     mavenBundle("ch.qos.logback", "logback-classic").versionAsInProject(),
 
                     mavenBundle("org.apache.directory.studio", "org.apache.commons.lang").versionAsInProject(),
-
+                    mavenBundle("com.google.guava","guava").versionAsInProject(),
                     // Uncomment this line to allow remote debugging
                     // CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
 
@@ -198,16 +245,40 @@ public class OSGiIntegrationTest {
         }
     }
 
+    @Before
+    public void setup() {
+        String domain = VC.getProviderAdminDomainId();
+        String username = VC.getProviderUsername();
+        String password = VC.getProviderPassword();
+        String tenantName = VC.getProviderAdminTenantName();
+
+        V3 v3 = OSFactory.builderV3()
+                .endpoint("http://" + VC.getProviderIpAddress() + ":5000/v3")
+                .credentials(username, password, Identifier.byName(domain))
+                .scopeToProject(Identifier.byName(tenantName), Identifier.byName(domain));
+
+        this.osClient = v3.authenticate();
+
+        LOG.debug("You should have prepared an opentack with sfc and two servers with two ports each!");
+
+        this.ingressEntity0 = new NetworkElementEntity(INGRESS0_ID, asList(INGRESS0_MAC),
+                                                                    asList(INGRESS0_IP), null);
+        this.egressEntity0 = new NetworkElementEntity(EGRESS0_ID, asList(EGRESS0_MAC),
+                                                                  asList(EGRESS0_IP), null);
+        this.inspectionPortEntity0 = new InspectionPortEntity(null, null, this.ingressEntity0, this.egressEntity0);
+
+        this.ingressEntity1 = new NetworkElementEntity(INGRESS1_ID, asList(INGRESS1_MAC),
+                                                                    asList(INGRESS1_IP), null);
+        this.egressEntity1 = new NetworkElementEntity(EGRESS1_ID, asList(EGRESS1_MAC),
+                       asList(EGRESS1_IP), null);
+        this.inspectionPortEntity1 = new InspectionPortEntity(null, null, this.ingressEntity1, this.egressEntity1);
+    }
+
     @After
     public void tearDown() throws Exception {
         if (this.redirApi != null) {
             this.redirApi.close();
         }
-    }
-
-    @Test
-    public void dummy() {
-
     }
 
     public void verifyApiResponds() throws Exception {
@@ -218,5 +289,111 @@ public class OSGiIntegrationTest {
         // Assert.
         assertNull(noSuchHook);
         assertTrue(this.redirApi instanceof NeutronSfcSdnRedirectionApi);
+    }
+
+    public void testPortPairsWorkflow() throws Exception {
+        this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
+        Element result0 = this.redirApi.registerInspectionPort(this.inspectionPortEntity0);
+
+        assertNotNull(result0);
+        LOG.debug("Success registering inspection port {} (Actual class {})", result0.getElementId(), result0.getClass());
+        this.inspectionPortEntity0 = (InspectionPortEntity) result0;
+
+        assertPortPairGroupIsOk(this.inspectionPortEntity0);
+        assertIngressEgressOk(this.inspectionPortEntity0);
+
+        // same parent
+        this.inspectionPortEntity1.setPortPairGroup(this.inspectionPortEntity0.getPortPairGroup());
+
+        Element result1 = this.redirApi.registerInspectionPort(this.inspectionPortEntity1);
+        assertNotNull(result1);
+        LOG.debug("Success registering inspection port {} (Actual class {})", result1.getElementId(), result1.getClass());
+        this.inspectionPortEntity1 = (InspectionPortEntity) result1;
+
+        assertEquals(this.inspectionPortEntity0.getParentId(), this.inspectionPortEntity1.getParentId());
+        assertPortPairGroupIsOk(this.inspectionPortEntity1);
+        assertIngressEgressOk(this.inspectionPortEntity0);
+
+        this.redirApi.removeInspectionPort(this.inspectionPortEntity0);
+        assertNull(this.osClient.sfc().portpairs().get(this.inspectionPortEntity0.getElementId()));
+        assertNotNull(this.osClient.sfc().portpairs().get(this.inspectionPortEntity1.getElementId()));
+        assertNotNull(this.osClient.sfc().portpairgroups().get(this.inspectionPortEntity0.getParentId()));
+
+        this.redirApi.removeInspectionPort(this.inspectionPortEntity1);
+        assertNull(this.osClient.sfc().portpairs().get(this.inspectionPortEntity1.getElementId()));
+        assertNull(this.osClient.sfc().portpairgroups().get(this.inspectionPortEntity1.getParentId()));
+    }
+
+    public void testInspectionHooksWorkflow_BothPairsInSamePPG() throws Exception {
+        this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
+
+        Element result0 = this.redirApi.registerInspectionPort(this.inspectionPortEntity0);
+        this.inspectionPortEntity0 = (InspectionPortEntity) result0;
+
+        // same parent
+        this.inspectionPortEntity1.setPortPairGroup(this.inspectionPortEntity0.getPortPairGroup());
+
+        Element result1 = this.redirApi.registerInspectionPort(this.inspectionPortEntity1);
+        this.inspectionPortEntity1 = (InspectionPortEntity) result1;
+
+        NetworkElement ne = this.redirApi.registerNetworkElement(asList(this.inspectionPortEntity0.getPortPairGroup()));
+        ServiceFunctionChainEntity sfc = (ServiceFunctionChainEntity) ne;
+
+        NetworkElementEntity inspected = new NetworkElementEntity(INSPECTED_ID, asList(INSPECTED_MAC),
+                                                                  asList(INSPECTED_IP), null);
+
+        String hookId = this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
+        assertNotNull(hookId);
+
+        InspectionHookElement ih = this.redirApi.getInspectionHook(hookId);
+        assertNotNull(ih);
+        assertNotNull(ih.getInspectionPort());
+        String sfcId = ih.getInspectionPort().getElementId();
+
+        PortChain portChainCheck = this.osClient.sfc().portchains().get(sfcId);
+        FlowClassifier flowClassifierCheck = this.osClient.sfc().flowclassifiers().get(hookId);
+        assertNotNull(portChainCheck);
+        assertNotNull(flowClassifierCheck);
+        assertTrue(portChainCheck.getFlowClassifiers().contains(hookId));
+
+    }
+
+    public void cleanPortPairsPPGsAndChains() {
+        List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
+        List<? extends FlowClassifier> flowClassifiers = this.osClient.sfc().flowclassifiers().list();
+        List<? extends PortPairGroup> portPairGroups = this.osClient.sfc().portpairgroups().list();
+        List<? extends PortPair> portPairs = this.osClient.sfc().portpairs().list();
+
+        for (PortChain pc : portChains) {
+            this.osClient.sfc().portchains().delete(pc.getId());
+        }
+        for (FlowClassifier fc : flowClassifiers) {
+            this.osClient.sfc().flowclassifiers().delete(fc.getId());
+        }
+        for (PortPairGroup ppg : portPairGroups) {
+            this.osClient.sfc().portpairgroups().delete(ppg.getId());
+        }
+        for (PortPair pp : portPairs) {
+            this.osClient.sfc().portpairs().delete(pp.getId());
+        }
+
+        assertEquals("Failed clean port chains!", 0, this.osClient.sfc().portchains().list().size());
+        assertEquals("Failed clean flow classifiers!", 0, this.osClient.sfc().flowclassifiers().list().size());
+        assertEquals("Failed clean port pair groups!", 0, this.osClient.sfc().portpairgroups().list().size());
+        assertEquals("Failed clean port pairs!", 0, this.osClient.sfc().portpairs().list().size());
+    }
+
+    private void assertIngressEgressOk(InspectionPortEntity inspectionPortEntity) {
+        PortPair portPairCheck = this.osClient.sfc().portpairs().get(inspectionPortEntity.getElementId());
+        assertEquals(inspectionPortEntity.getEgressPort().getElementId(), portPairCheck.getEgressId());
+        assertEquals(inspectionPortEntity.getEgressPort().getElementId(), portPairCheck.getEgressId());
+    }
+
+    private void assertPortPairGroupIsOk(InspectionPortEntity inspectionPortEntity) {
+        assertNotNull(inspectionPortEntity.getPortPairGroup());
+        PortPairGroup ppgCheck = this.osClient.sfc().portpairgroups().get(inspectionPortEntity.getParentId());
+        assertNotNull(ppgCheck);
+        assertNotNull(ppgCheck.getPortPairs());
+        assertTrue(ppgCheck.getPortPairs().contains(inspectionPortEntity.getElementId()));
     }
 }
