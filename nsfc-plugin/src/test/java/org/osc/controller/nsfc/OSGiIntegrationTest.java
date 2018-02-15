@@ -211,6 +211,10 @@ public class OSGiIntegrationTest {
     }
 
     @Test
+    public void dummy() {
+
+    }
+
     public void verifyApiResponds() throws Exception {
         // Act.
         this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
