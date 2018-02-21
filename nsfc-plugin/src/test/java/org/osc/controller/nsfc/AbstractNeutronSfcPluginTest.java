@@ -16,8 +16,10 @@
  *******************************************************************************/
 package org.osc.controller.nsfc;
 
-import static java.util.Collections.singletonList;
 import static org.osc.controller.nsfc.TestData.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -29,7 +31,6 @@ import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.api.client.IOSClientBuilder.V3;
 import org.openstack4j.api.networking.NetworkingService;
-import org.openstack4j.api.networking.PortService;
 import org.openstack4j.api.networking.ext.ServiceFunctionChainService;
 
 public abstract class AbstractNeutronSfcPluginTest {
@@ -45,38 +46,52 @@ public abstract class AbstractNeutronSfcPluginTest {
     @Mock
     protected NetworkingService networkingService;
 
-    @Mock
-    protected PortService portService;
-
-
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
     @Before
     public void setup() throws Exception {
         setupDataObjects();
-        Mockito.when(this.networkingService.port()).thenReturn(this.portService);
+        Mockito.when(this.networkingService.port()).thenReturn(portService);
         Mockito.when(this.sfcService.portchains()).thenReturn(portChainService);
         Mockito.when(this.sfcService.portpairs()).thenReturn(portPairService);
         Mockito.when(this.sfcService.portpairgroups()).thenReturn(portPairGroupService);
+        Mockito.when(this.sfcService.flowclassifiers()).thenReturn(flowClassifierService);
         Mockito.when(this.osClient.sfc()).thenReturn(this.sfcService);
         Mockito.when(this.osClient.networking()).thenReturn(this.networkingService);
-
     }
 
     @After
     public void tearDown() throws Exception {
     }
 
-    protected void persistInspectionHook() {
-        persistInspectionPort();
+    protected void persistIngress() {
+        ingressPort = portService.create(Builders.port().macAddress(ingressPortEntity.getMacAddresses().get(0))
+                                 .fixedIp(ingressPortEntity.getPortIPs().get(0), "mySubnet").build());
+        ingressPortEntity.setElementId(ingressPort.getId());
     }
 
-    protected void persistInspectionPort() {
+    protected void persistEgress() {
+        egressPort = portService.create(Builders.port().macAddress(egressPortEntity.getMacAddresses().get(0))
+                                .fixedIp(egressPortEntity.getPortIPs().get(0), "mySubnet").build());
+        egressPortEntity.setElementId(egressPort.getId());
+    }
+
+    protected void persistInspectionPort(boolean withIngress, boolean withEgress) {
+        if (withIngress) {
+            portPair = portPair.toBuilder().ingressId(ingressPort.getId()).build();
+        }
+
+        if (withEgress) {
+            portPair = portPair.toBuilder().egressId(egressPort.getId()).build();
+        }
 
         portPair = portPairService.create(portPair);
+    }
+
+    protected void persistPortPairGroup() {
         portPairGroup = Builders.portPairGroup()
-                .portPairs(singletonList(portPair.getId()))
+                .portPairs(new ArrayList<>(Arrays.asList(portPair.getId())))
                 .build();
         portPairGroup = portPairGroupService.create(portPairGroup);
     }
