@@ -51,7 +51,7 @@ public class RedirectionApiUtils {
     }
 
     private PortPairGroupEntity makePortPairGroupEntity(PortPairGroup portPairGroup) {
-        return null; // TODO (Dmitry)
+        return null; // TODO (Dmitry) Implement
     }
 
     public NetworkElementEntity makeNetworkElementEntity(NetworkElement networkElement) {
@@ -73,49 +73,6 @@ public class RedirectionApiUtils {
             ips = new ArrayList<>();
         }
         return new NetworkElementEntity(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
-    }
-
-    public InspectionPortEntity makeInspectionPortEntity(PortPair portPair,
-                                                NetworkElementEntity ingressEntity,
-                                                NetworkElementEntity egressEntity,
-                                                PortPairGroupEntity portPairGroupEntity) {
-        throwExceptionIfNullElement(portPair, "Inspection Port");
-
-        if (ingressEntity == null) {
-            Port ingress = this.osClient.networking().port().get(portPair.getIngressId());
-            ingressEntity = makeNetworkElementEntity(ingress, portPair.getId());
-        }
-
-        if (egressEntity == null) {
-            Port egress = this.osClient.networking().port().get(portPair.getIngressId());
-            egressEntity = makeNetworkElementEntity(egress, portPair.getId());
-        }
-
-        return new InspectionPortEntity(portPair.getId(), portPairGroupEntity, ingressEntity, egressEntity);
-    }
-
-    public PortPairGroupEntity makePortPairGroupEntity(PortPairGroup portPairGroup,
-                                        ServiceFunctionChainEntity serviceFunctionChainEntity) {
-        throwExceptionIfNullElement(portPairGroup, "Inspection Port");
-        PortPairGroupEntity entity = new PortPairGroupEntity(portPairGroup.getId());
-
-        if (serviceFunctionChainEntity != null) {
-            entity.setServiceFunctionChain(serviceFunctionChainEntity);
-            String id = portPairGroup.getId();
-            boolean alreadyAdded = id == null ||
-                    !serviceFunctionChainEntity.getPortPairGroups().stream()
-                       .anyMatch(p -> p != null && id.equals(p.getElementId()));
-            if (!alreadyAdded) {
-                serviceFunctionChainEntity.getPortPairGroups().add(entity);
-            }
-        }
-
-        return entity;
-    }
-
-    public ServiceFunctionChainEntity makeServiceFunctionChainEntity(PortChain portChain) {
-
-        return new ServiceFunctionChainEntity(portChain.getChainId());
     }
 
     public InspectionPortEntity makeInspectionPortEntity(InspectionPortElement inspectionPortElement) {
@@ -166,7 +123,7 @@ public class RedirectionApiUtils {
     }
 
     public ServiceFunctionChainEntity findBySfcId(String sfcId) {
-        return null; // TODO (Dmitry)
+        return null; // TODO (Dmitry) Implement
     }
 
     public void removeSingleInspectionHook(String hookId) {
@@ -174,11 +131,11 @@ public class RedirectionApiUtils {
             LOG.warn("Attempt to remove Inspection Hook with null id");
             return;
         }
-     // TODO (Dmitry)
+     // TODO (Dmitry) Implement
     }
 
     public void removeSingleInspectionPort(String inspectionPortId) {
-     // TODO (Dmitry)
+     // TODO (Dmitry) Implement
     }
 
     /**
@@ -188,7 +145,7 @@ public class RedirectionApiUtils {
             ServiceFunctionChainEntity inspectionSfc) {
         LOG.info(String.format("Finding Inspection hooks by inspected %s and sfc %s", inspected,
                 inspectionSfc.getElementId()));
-        return null; // TODO (Dmitry)
+        return null; // TODO (Dmitry) Implement
     }
 
     public NetworkElementEntity retrieveNetworkElementFromOS(String portId, String portPairId) {
@@ -230,7 +187,7 @@ public class RedirectionApiUtils {
     }
 
     public void validateAndClear(ServiceFunctionChainEntity sfc) {
-     // TODO (Dmitry)
+     // TODO (Dmitry) Implement
     }
 
     /**

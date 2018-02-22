@@ -69,7 +69,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             return null;
         }
 
-        return null; // TODO (Dmitry)
+        return null; // TODO (Dmitry) Implement
     }
 
     @Override
@@ -77,7 +77,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         if (inspectionPort == null) {
             throw new IllegalArgumentException("Attempt to register null InspectionPort");
         }
-        return null; // TODO (Dmitry)
+        return null; // TODO (Dmitry) Implement
     }
 
     @Override
@@ -87,7 +87,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             LOG.warn("Attempt to remove a null Inspection Port");
             return;
         }
-        // TODO (Dmitry)
+        // TODO (Dmitry) Implement
     }
 
     // Inspection Hooks methods
@@ -96,7 +96,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             TagEncapsulationType encType, Long order, FailurePolicyType failurePolicyType)
             throws NetworkPortNotFoundException, Exception {
 
-        return null; // TODO (Dmitry)
+        return null; // TODO (Dmitry) Implement
     }
 
     @Override
@@ -105,7 +105,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             throw new IllegalArgumentException("Attempt to update a null Inspection Hook!");
         }
         LOG.info(String.format("Updating Inspection Hook %s:", providedHook));
-        // TODO (Dmitry)
+        // TODO (Dmitry) Implement
     }
 
     @Override
@@ -125,7 +125,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             return null;
         }
 
-        return null;  // TODO (Dmitry)
+        return null;  // TODO (Dmitry) Implement
     }
 
     // SFC methods

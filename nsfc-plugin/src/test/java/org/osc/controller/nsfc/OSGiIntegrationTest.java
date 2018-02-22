@@ -177,8 +177,6 @@ public class OSGiIntegrationTest {
                     mavenBundle("org.apache.servicemix.bundles", "org.apache.servicemix.bundles.dom4j")
                             .versionAsInProject(),
                     mavenBundle("org.javassist", "javassist").versionAsInProject(),
-//                    mavenBundle("org.jboss.logging", "jboss-logging").versionAsInProject(),
-//                    mavenBundle("org.jboss", "jandex").versionAsInProject(),
 
                     mavenBundle("com.fasterxml", "classmate").versionAsInProject(),
                     mavenBundle("org.javassist", "javassist").versionAsInProject(),
@@ -190,13 +188,12 @@ public class OSGiIntegrationTest {
                     mavenBundle("org.apache.directory.studio", "org.apache.commons.lang").versionAsInProject(),
 
                     // Uncomment this line to allow remote debugging
-//                    CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
+                    // CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
 
                     bootClasspathLibrary(mavenBundle("org.apache.geronimo.specs", "geronimo-jta_1.1_spec", "1.1.1"))
                             .beforeFramework(),
                     junitBundles());
         } catch (Throwable t) {
-
             System.err.println(t.getClass().getName() + ":\n" + t.getMessage());
             t.printStackTrace(System.err);
             throw t;
