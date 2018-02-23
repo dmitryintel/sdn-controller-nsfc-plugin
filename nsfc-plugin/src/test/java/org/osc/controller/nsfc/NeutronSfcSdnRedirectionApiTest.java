@@ -215,7 +215,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     @Test
     public void testApi_RegisterNetworkElement_VerifySuccess() throws Exception {
         // Arrange
-        persistInspectionPort();
+        persistPortPairGroup();
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
         DefaultNetworkPort ne = new DefaultNetworkPort();
         ne.setElementId(portPairGroup.getId());
@@ -526,7 +526,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     }
 
     private void persistInspectionPortAndSfc() {
-        persistInspectionPort();
+        persistPortPairGroup();
         portChain = Builders.portChain()
                 .portPairGroups(singletonList(portPairGroup.getId()))
                 .build();

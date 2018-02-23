@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.model.network.Port;
 import org.openstack4j.model.network.ext.PortChain;
-import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
@@ -66,12 +65,11 @@ public class RedirectionApiUtils {
 
     public NetworkElementEntity makeNetworkElementEntity(Port port, String parentId) {
         throwExceptionIfNullElement(port, "OS Port");
-        List<String> ips;
+        List<String> ips = new ArrayList<>();
         if (port.getFixedIps() != null) {
             ips = port.getFixedIps().stream().map(ip -> ip.toString()).collect(Collectors.toList());
-        } else {
-            ips = new ArrayList<>();
         }
+
         return new NetworkElementEntity(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
     }
 

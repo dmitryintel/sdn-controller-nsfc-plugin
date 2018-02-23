@@ -68,12 +68,7 @@ public abstract class AbstractNeutronSfcPluginTest {
     public void tearDown() throws Exception {
     }
 
-    protected void persistInspectionHook() {
-        persistInspectionPort();
-    }
-
-    protected void persistInspectionPort() {
-
+    protected void persistPortPairGroup() {
         portPair = portPairService.create(portPair);
         portPairGroup = Builders.portPairGroup()
                 .portPairs(singletonList(portPair.getId()))
