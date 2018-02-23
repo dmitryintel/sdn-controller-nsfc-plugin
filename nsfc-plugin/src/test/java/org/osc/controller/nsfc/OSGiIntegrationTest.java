@@ -287,6 +287,7 @@ public class OSGiIntegrationTest {
         if (this.redirApi != null) {
             this.redirApi.close();
         }
+        cleanAllOnOpenstack();
     }
 
     public void verifyApiResponds() throws Exception {
@@ -301,6 +302,8 @@ public class OSGiIntegrationTest {
 
     public void testPortPairsWorkflow() throws Exception {
         this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
+
+        // TEST CALL
         Element result0 = this.redirApi.registerInspectionPort(this.inspectionPortEntity0);
 
         assertNotNull(result0);
@@ -313,7 +316,9 @@ public class OSGiIntegrationTest {
         // same parent
         this.inspectionPortEntity1.setPortPairGroup(this.inspectionPortEntity0.getPortPairGroup());
 
+        // TEST CALL
         Element result1 = this.redirApi.registerInspectionPort(this.inspectionPortEntity1);
+
         assertNotNull(result1);
         LOG.debug("Success registering inspection port {} (Actual class {})", result1.getElementId(), result1.getClass());
         this.inspectionPortEntity1 = (InspectionPortEntity) result1;
@@ -322,12 +327,16 @@ public class OSGiIntegrationTest {
         assertPortPairGroupIsOk(this.inspectionPortEntity1);
         assertIngressEgressOk(this.inspectionPortEntity0);
 
+        // TEST CALL
         this.redirApi.removeInspectionPort(this.inspectionPortEntity0);
+
         assertNull(this.osClient.sfc().portpairs().get(this.inspectionPortEntity0.getElementId()));
         assertNotNull(this.osClient.sfc().portpairs().get(this.inspectionPortEntity1.getElementId()));
         assertNotNull(this.osClient.sfc().portpairgroups().get(this.inspectionPortEntity0.getParentId()));
 
+        // TEST CALL
         this.redirApi.removeInspectionPort(this.inspectionPortEntity1);
+
         assertNull(this.osClient.sfc().portpairs().get(this.inspectionPortEntity1.getElementId()));
         assertNull(this.osClient.sfc().portpairgroups().get(this.inspectionPortEntity1.getParentId()));
     }
@@ -350,10 +359,14 @@ public class OSGiIntegrationTest {
         NetworkElementEntity inspected = new NetworkElementEntity(INSPECTED_ID, asList(INSPECTED_MAC),
                                                                   asList(INSPECTED_IP), null);
 
+        // TEST CALL
         String hookId = this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
+
         assertNotNull(hookId);
 
+        // TEST CALL
         InspectionHookElement ih = this.redirApi.getInspectionHook(hookId);
+
         assertNotNull(ih);
         assertNotNull(ih.getInspectedPort());
         assertEquals(INSPECTED_ID, ih.getInspectedPort().getElementId());
@@ -392,9 +405,26 @@ public class OSGiIntegrationTest {
         assertNotNull(flowClassifierCheck);
         assertTrue(portChainCheck.getFlowClassifiers().contains(hookId));
 
+        // TEST CALL
+        this.redirApi.removeInspectionHook(hookId);
+
+        assertNull(this.redirApi.getInspectionHook(hookId));
+        assertNull(this.osClient.sfc().flowclassifiers().get(hookId));
+
+        inspectedPortCheck = this.osClient.networking().port().get(INSPECTED_ID);
+        assertNotNull(inspectedPortCheck);
+        assertFalse(inspectedPortCheck.getProfile() != null
+                           && inspectedPortCheck.getProfile().get(KEY_HOOK_ID) != null);
+        portChainCheck = this.osClient.sfc().portchains().get(sfcId);
+        assertFalse(portChainCheck.getFlowClassifiers() != null
+                          && portChainCheck.getFlowClassifiers().contains(hookId));
+
+        // TEST CALL
+        this.redirApi.deleteNetworkElement(sfc);
+        assertNull(this.osClient.sfc().portchains().get(sfc.getElementId()));
     }
 
-    public void cleanPortPairsPPGsAndChains() {
+    public void cleanAllOnOpenstack() {
         List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
         List<? extends FlowClassifier> flowClassifiers = this.osClient.sfc().flowclassifiers().list();
         List<? extends PortPairGroup> portPairGroups = this.osClient.sfc().portpairgroups().list();

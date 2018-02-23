@@ -244,6 +244,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         flowClassifier = this.utils.createFlowClassifier(flowClassifier);
         portChain.getFlowClassifiers().add(flowClassifier.getId());
         this.utils.updatePortChain(portChain.getId(), portChain);
+
         this.utils.setHookOnPort(inspectedPortElement.getElementId(), flowClassifier.getId());
 
         return flowClassifier.getId();
@@ -315,6 +316,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         PortChain portChain = this.utils.findContainingPortChainForFC(flowClassifier.getId());
         if (portChain != null) {
             portChain.getFlowClassifiers().remove(flowClassifier.getId());
+            this.utils.updatePortChain(portChain.getId(), portChain);
         }
 
         Port protectedPort = this.utils.findProtectedPort(flowClassifier);
@@ -336,12 +338,14 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         InspectionHookEntity retVal = this.utils.makeInspectionHookEntity(inspectionHookId);
 
-        PortChain portChain = this.utils.findContainingPortChainForFC(inspectionHookId);
+        if (retVal != null) {
+            PortChain portChain = this.utils.findContainingPortChainForFC(inspectionHookId);
 
-        if (portChain != null) {
-            ServiceFunctionChainEntity sfcEntity = this.utils.findComplete(portChain);
-            retVal.setServiceFunctionChain(sfcEntity);
-            sfcEntity.getInspectionHooks().add(retVal);
+            if (portChain != null) {
+                ServiceFunctionChainEntity sfcEntity = this.utils.findComplete(portChain);
+                retVal.setServiceFunctionChain(sfcEntity);
+                sfcEntity.getInspectionHooks().add(retVal);
+            }
         }
 
         return retVal;
