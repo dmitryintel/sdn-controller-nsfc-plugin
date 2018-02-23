@@ -30,6 +30,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -41,6 +42,7 @@ import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.openstack4j.openstack.OSFactory;
+import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.util.PathUtils;
 import org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi;
@@ -232,8 +234,9 @@ public class OSGiIntegrationTest {
 
                     mavenBundle("org.apache.directory.studio", "org.apache.commons.lang").versionAsInProject(),
                     mavenBundle("com.google.guava","guava").versionAsInProject(),
+
                     // Uncomment this line to allow remote debugging
-                    // CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
+                    CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
 
                     bootClasspathLibrary(mavenBundle("org.apache.geronimo.specs", "geronimo-jta_1.1_spec", "1.1.1"))
                             .beforeFramework(),
@@ -349,13 +352,13 @@ public class OSGiIntegrationTest {
         assertNotNull(ih);
         assertNotNull(ih.getInspectionPort());
         String sfcId = ih.getInspectionPort().getElementId();
+        Assert.assertEquals(sfc.getElementId(), sfcId);
 
         PortChain portChainCheck = this.osClient.sfc().portchains().get(sfcId);
         FlowClassifier flowClassifierCheck = this.osClient.sfc().flowclassifiers().get(hookId);
         assertNotNull(portChainCheck);
         assertNotNull(flowClassifierCheck);
         assertTrue(portChainCheck.getFlowClassifiers().contains(hookId));
-
     }
 
     public void cleanPortPairsPPGsAndChains() {

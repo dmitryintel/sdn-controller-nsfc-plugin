@@ -526,8 +526,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistPortPairGroup();
 
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
-        DefaultNetworkPort ne = new DefaultNetworkPort();
-        ne.setElementId(portPairGroup.getId());
+        PortPairGroupEntity ne = new PortPairGroupEntity(portPairGroup.getId());
         neList.add(ne);
 
         // Act

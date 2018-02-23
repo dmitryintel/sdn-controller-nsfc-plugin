@@ -215,10 +215,6 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         ServiceFunctionChainEntity sfcEntity = (ServiceFunctionChainEntity) inspectionPortElement;
 
-        String sourcePortId = sfcEntity.getPortPairGroups().get(0).getElementId();
-        int nGroups = sfcEntity.getPortPairGroups().size();
-        String destPortId = sfcEntity.getPortPairGroups().get(nGroups - 1).getElementId();
-
         LOG.info(String.format("Installing Inspection Hook for (Inspected Port %s ; Inspection Port %s):",
                 inspectedPortElement, inspectionPortElement));
 
@@ -234,6 +230,10 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             LOG.error(msg + " " + flowClassifier);
             throw new IllegalStateException(msg);
         }
+
+        String sourcePortId = sfcEntity.getPortPairGroups().get(0).getPortPairs().get(0).getIngressPort().getElementId();
+        int nGroups = sfcEntity.getPortPairGroups().size();
+        String destPortId = sfcEntity.getPortPairGroups().get(0).getPortPairs().get(nGroups - 1).getEgressPort().getElementId();
 
         flowClassifier = Builders.flowClassifier()
                              .destinationIpPrefix(inspectedPortElement.getPortIPs().get(0))
@@ -369,7 +369,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         PortChain portChainCreated = this.utils.createPortChain(portChain);
 
         List<PortPairGroupEntity> portPairGroups =
-                portPairGroupList.stream().map(p -> new PortPairGroupEntity(p.getElementId())).collect(toList());
+                portPairGroupList.stream().map(p -> (PortPairGroupEntity) p).collect(toList());
         ServiceFunctionChainEntity retVal = new ServiceFunctionChainEntity(portChainCreated.getId());
         portPairGroups.stream().forEach(p -> p.setServiceFunctionChain(retVal));
         retVal.setPortPairGroups(portPairGroups);

@@ -181,7 +181,7 @@ public class RedirectionApiUtils {
         return port;
     }
 
-    private InspectionPortEntity findIn(PortPairGroupEntity portPairGroupEntity, String portPairId) {
+    private InspectionPortEntity findPortPairUnderGroup(PortPairGroupEntity portPairGroupEntity, String portPairId) {
         checkArgument(portPairGroupEntity != null, "null passed for %s !", "Port Pair Group Entity");
         checkArgument(portPairId != null, "null passed for %s !", "Port Pair Id");
         if (portPairGroupEntity.getPortPairs() != null) {
@@ -201,12 +201,6 @@ public class RedirectionApiUtils {
         }
 
         return null;
-    }
-
-    public ServiceFunctionChainEntity findBySfcId(String sfcId) {
-        PortChain portChain = this.osClient.sfc().portchains().get(sfcId);
-
-        return portChain != null ? new ServiceFunctionChainEntity(portChain.getId()) : null;
     }
 
     public PortPair findInspectionPortByNetworkElements(NetworkElement ingress, NetworkElement egress) {
@@ -266,7 +260,7 @@ public class RedirectionApiUtils {
             } else {
                 portPairGroupEntity = makePortPairGroupEntity(portPairGroup);
             }
-            return findIn(portPairGroupEntity, portPair.getId());
+            return findPortPairUnderGroup(portPairGroupEntity, portPair.getId());
         } else {
             return makeInspectionPortEntity(portPair);
         }
@@ -464,7 +458,8 @@ public class RedirectionApiUtils {
   }
 
   public PortChain getPortChain(String portChainId) {
-      return fixPortChainCollections(this.osClient.sfc().portchains().get(portChainId));
+      PortChain portChain = this.osClient.sfc().portchains().get(portChainId);
+      return fixPortChainCollections(portChain);
   }
 
   public PortPairGroup getPortPairGroup(String portPairGroupId) {
@@ -483,9 +478,7 @@ public class RedirectionApiUtils {
       checkArgument(flowClassifierId != null, "null passed for %s !", "Flow Classifier Id");
       checkArgument(flowClassifier != null, "null passed for %s !", "Flow Classifier");
 
-      if (flowClassifier.getTenantId() != null) {
-          LOG.warn("Some attributes, (id, projectId) cannot be modified on %s. ", flowClassifier);
-      }
+      // OS won't let us modify some attributes. Must be null on update object
       flowClassifier = flowClassifier.toBuilder().id(null).projectId(null).build();
 
       return this.osClient.sfc().flowclassifiers().update(flowClassifierId, flowClassifier);
@@ -495,10 +488,8 @@ public class RedirectionApiUtils {
       checkArgument(portChainId != null, "null passed for %s !", "Port Chain Id");
       checkArgument(portChain != null, "null passed for %s !", "Port Chain");
 
-      if (portChain.getTenantId() != null) {
-          LOG.warn("Some attributes,  (id, projectId) cannot be modified on %s. ", portChain);
-      }
-      portChain = portChain.toBuilder().id(null).projectId(null).build();
+      // OS won't let us modify some attributes. Must be null on update object
+      portChain = portChain.toBuilder().id(null).projectId(null).chainParameters(null).chainId(null).build();
 
       portChain = this.osClient.sfc().portchains().update(portChainId, portChain);
       return fixPortChainCollections(portChain);
@@ -508,12 +499,7 @@ public class RedirectionApiUtils {
       checkArgument(portPairGroupId != null, "null passed for %s !", "Port Pair Group Id");
       checkArgument(portPairGroup != null, "null passed for %s !", "Port Pair Group");
 
-      if (portPairGroup.getTenantId() != null) {
-          LOG.warn("Some attributes, (id, projectId, ppgParameters) cannot be modified on %s. ", portPairGroup);
-      }
-
-      // Cannot modify id or projectId. Those two parameters
-      // must be null on the update object
+      // OS won't let us modify some attributes. Must be null on update object
       portPairGroup  = portPairGroup.toBuilder().id(null).projectId(null).portPairGroupParameters(null).build();
 
       portPairGroup = this.osClient.sfc().portpairgroups().update(portPairGroupId, portPairGroup);
@@ -524,10 +510,7 @@ public class RedirectionApiUtils {
       checkArgument(portPairId != null, "null passed for %s !", "Port Pair Id");
       checkArgument(portPair != null, "null passed for %s !", "Port Pair");
 
-      if (portPair.getTenantId() != null) {
-          LOG.warn("Some attributes, (id, projectId) cannot be modified on %s. ", portPair);
-      }
-
+      // OS won't let us modify some attributes. Must be null on update object
       portPair = portPair.toBuilder().id(null).projectId(null).build();
       portPair = this.osClient.sfc().portpairs().update(portPairId, portPair);
       return portPair;
