@@ -50,7 +50,6 @@ import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
 import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
-import org.osc.controller.nsfc.utils.RedirectionApiUtils;
 import org.osc.sdk.controller.DefaultNetworkPort;
 import org.osc.sdk.controller.element.Element;
 import org.osc.sdk.controller.element.InspectionHookElement;
@@ -61,7 +60,6 @@ import org.osc.sdk.controller.element.NetworkElement;
 public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTest {
 
     private NeutronSfcSdnRedirectionApi redirApi;
-    private RedirectionApiUtils utils;
 
     @Before
     @Override
@@ -69,7 +67,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         MockitoAnnotations.initMocks(this);
         super.setup();
         this.redirApi = new NeutronSfcSdnRedirectionApi(this.osClient);
-        this.utils = new RedirectionApiUtils(this.osClient);
     }
 
     // Inspection port tests

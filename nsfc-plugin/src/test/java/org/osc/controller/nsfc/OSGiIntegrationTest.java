@@ -45,7 +45,6 @@ import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.openstack4j.openstack.OSFactory;
-import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.util.PathUtils;
 import org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi;
@@ -241,7 +240,7 @@ public class OSGiIntegrationTest {
                     mavenBundle("com.google.guava","guava").versionAsInProject(),
 
                     // Uncomment this line to allow remote debugging
-                    CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
+                    // CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
 
                     bootClasspathLibrary(mavenBundle("org.apache.geronimo.specs", "geronimo-jta_1.1_spec", "1.1.1"))
                             .beforeFramework(),
@@ -290,6 +289,7 @@ public class OSGiIntegrationTest {
         cleanAllOnOpenstack();
     }
 
+//  @Test
     public void verifyApiResponds() throws Exception {
         // Act.
         this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
@@ -300,6 +300,7 @@ public class OSGiIntegrationTest {
         assertTrue(this.redirApi instanceof NeutronSfcSdnRedirectionApi);
     }
 
+//    @Test
     public void testPortPairsWorkflow() throws Exception {
         this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
 
@@ -341,6 +342,7 @@ public class OSGiIntegrationTest {
         assertNull(this.osClient.sfc().portpairgroups().get(this.inspectionPortEntity1.getParentId()));
     }
 
+//    @Test
     public void testInspectionHooksWorkflow_BothPairsInSamePPG() throws Exception {
         this.redirApi = this.api.createRedirectionApi(VC, "DummyRegion");
 
@@ -353,6 +355,7 @@ public class OSGiIntegrationTest {
         Element result1 = this.redirApi.registerInspectionPort(this.inspectionPortEntity1);
         this.inspectionPortEntity1 = (InspectionPortEntity) result1;
 
+        // TEST CALL
         NetworkElement ne = this.redirApi.registerNetworkElement(asList(this.inspectionPortEntity0.getPortPairGroup()));
         ServiceFunctionChainEntity sfc = (ServiceFunctionChainEntity) ne;
 

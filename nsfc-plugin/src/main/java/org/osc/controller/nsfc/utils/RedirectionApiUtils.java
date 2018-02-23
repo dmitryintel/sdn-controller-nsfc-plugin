@@ -32,8 +32,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.openstack4j.api.OSClient.OSClientV3;
-import org.openstack4j.model.common.ActionResponse;
 import org.openstack4j.model.network.Port;
 import org.openstack4j.model.network.ext.FlowClassifier;
 import org.openstack4j.model.network.ext.PortChain;
@@ -45,7 +43,6 @@ import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
 import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
-import org.osc.sdk.controller.element.Element;
 import org.osc.sdk.controller.element.NetworkElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +51,10 @@ public class RedirectionApiUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(RedirectionApiUtils.class);
 
-    private OSClientV3 osClient;
+    private OsCalls osCalls;
 
-    public RedirectionApiUtils(OSClientV3 osClient) {
-        this.osClient = osClient;
+    public RedirectionApiUtils(OsCalls osCalls) {
+        this.osCalls = osCalls;
     }
 
     private NetworkElementEntity makeNetworkElementEntity(Port port, String parentId) {
@@ -73,9 +70,9 @@ public class RedirectionApiUtils {
     private InspectionPortEntity makeInspectionPortEntity(PortPair portPair) {
         checkArgument(portPair != null, "null passed for %s !", "Inspection Port");
 
-        Port ingressPort = portPair.getIngressId() != null ? this.osClient.networking().port().get(portPair.getIngressId())
+        Port ingressPort = portPair.getIngressId() != null ? this.osCalls.getPort(portPair.getIngressId())
                             : null;
-        Port egressPort = portPair.getEgressId() != null ? this.osClient.networking().port().get(portPair.getEgressId())
+        Port egressPort = portPair.getEgressId() != null ? this.osCalls.getPort(portPair.getEgressId())
                             : null;
 
         NetworkElementEntity ingressEntity = null;
@@ -97,7 +94,7 @@ public class RedirectionApiUtils {
         PortPairGroupEntity retVal = new PortPairGroupEntity(portPairGroup.getId());
 
         if (portPairGroup.getPortPairs() != null) {
-            List<? extends PortPair> portPairs = this.osClient.sfc().portpairs().list();
+            List<? extends PortPair> portPairs = this.osCalls.listPortPairs();
             portPairs = portPairs
                          .stream()
                          .filter(pp -> portPairGroup.getPortPairs().contains(pp.getId()))
@@ -109,7 +106,7 @@ public class RedirectionApiUtils {
                     retVal.getPortPairs().add(inspectionPortEntity);
                     inspectionPortEntity.setPortPairGroup(retVal);
                 } catch (IllegalArgumentException e) {
-                    LOG.error("Port pair %s  listed for port pair group %s does not exist!", portPair.getId(),
+                    LOG.error("Port pair {}  listed for port pair group {} does not exist!", portPair.getId(),
                               portPairGroup.getId());
                 }
             }
@@ -124,7 +121,7 @@ public class RedirectionApiUtils {
         ServiceFunctionChainEntity retVal =  new ServiceFunctionChainEntity(portChain.getId());
 
         if (portChain.getPortPairGroups() != null) {
-            Set<? extends PortPairGroup> portPairGroups = new HashSet<>(this.osClient.sfc().portpairgroups().list());
+            Set<? extends PortPairGroup> portPairGroups = new HashSet<>(this.osCalls.listPortPairGroups());
             portPairGroups = portPairGroups
                                  .stream()
                                  .filter(pp -> portChain.getPortPairGroups().contains(pp.getId()))
@@ -136,7 +133,7 @@ public class RedirectionApiUtils {
                     retVal.getPortPairGroups().add(portPairGroupEntity);
                     portPairGroupEntity.setServiceFunctionChain(retVal);
                 } catch (IllegalArgumentException e) {
-                    LOG.error("Port pair group %s  listed for port chain group %s does not exist!", portPairGroup.getId(),
+                    LOG.error("Port pair group {} listed for port chain group {} does not exist!", portPairGroup.getId(),
                               portChain.getId());
                 }
             }
@@ -146,7 +143,7 @@ public class RedirectionApiUtils {
     }
 
     public InspectionHookEntity makeInspectionHookEntity(String flowClassifierId) {
-        FlowClassifier flowClassifier = getFlowClassifier(flowClassifierId);
+        FlowClassifier flowClassifier = this.osCalls.getFlowClassifier(flowClassifierId);
 
         if (flowClassifier == null) {
             return null;
@@ -174,7 +171,7 @@ public class RedirectionApiUtils {
         PortListOptions options = PortListOptions.create().tenantId(flowClassifier.getTenantId());
         options.getOptions().put("ip_address", ip);
 
-        List<? extends Port> ports = this.osClient.networking().port().list(options);
+        List<? extends Port> ports = this.osCalls.listPorts();
         Port port = ports.stream().filter(p -> p.getProfile() != null
                                             && flowClassifier.getId().equals(p.getProfile().get(KEY_HOOK_ID)))
                           .findFirst().orElse(null);
@@ -207,7 +204,7 @@ public class RedirectionApiUtils {
         String ingressId = ingress != null ? ingress.getElementId() : null;
         String egressId = egress != null ? egress.getElementId() : null;
 
-        List<? extends PortPair> portPairs = this.osClient.sfc().portpairs().list();
+        List<? extends PortPair> portPairs = this.osCalls.listPortPairs();
 
         Optional<? extends PortPair> portPairOpt = portPairs.stream()
                             .filter(pp -> Objects.equals(ingressId, pp.getIngressId())
@@ -218,7 +215,7 @@ public class RedirectionApiUtils {
     }
 
     public PortPairGroup findContainingPortPairGroup(String portPairId) {
-        List<? extends PortPairGroup> portPairGroups = this.osClient.sfc().portpairgroups().list();
+        List<? extends PortPairGroup> portPairGroups = this.osCalls.listPortPairGroups();
         Optional<? extends PortPairGroup> ppgOpt = portPairGroups.stream()
                                         .filter(ppg -> ppg.getPortPairs().contains(portPairId))
                                         .findFirst();
@@ -226,7 +223,7 @@ public class RedirectionApiUtils {
     }
 
     public PortChain findContainingPortChain(String portPairGroupId) {
-        List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
+        List<? extends PortChain> portChains = this.osCalls.listPortChains();
         Optional<? extends PortChain> pcOpt = portChains.stream()
                                         .filter(pc -> pc.getPortPairGroups().contains(portPairGroupId))
                                         .findFirst();
@@ -234,7 +231,7 @@ public class RedirectionApiUtils {
     }
 
     public PortChain findContainingPortChainForFC(String flowClassifierId) {
-        List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
+        List<? extends PortChain> portChains = this.osCalls.listPortChains();
         Optional<? extends PortChain> pcOpt = portChains.stream()
                                         .filter(pc -> pc.getFlowClassifiers() != null
                                                           && pc.getFlowClassifiers().contains(flowClassifierId))
@@ -290,43 +287,58 @@ public class RedirectionApiUtils {
         return makeServiceFunctionChainEntity(portChain);
     }
 
-    public void removeSingleInspectionHook(String hookId) {
-        if (hookId == null) {
-            LOG.warn("Attempt to remove Inspection Hook with null id");
-            return;
-        }
-
-        deleteFlowClassifier(hookId);
-    }
-
     /**
      * Assumes arguments is not null
      */
     public FlowClassifier findInspHookByInspectedPort(NetworkElement inspected) {
-        LOG.info(String.format("Finding Inspection hooks for inspected port %s", inspected));
+        LOG.info("Finding Inspection hooks for inspected port {}", inspected);
 
-        Port inspectedPort  = this.osClient.networking().port().get(inspected.getElementId());
+        Port inspectedPort  = this.osCalls.getPort(inspected.getElementId());
 
         if (inspectedPort == null) {
             throw new IllegalArgumentException(String.format("Inspected port %s does not exist!", inspected.getElementId()));
         }
 
         if (inspectedPort.getProfile() == null || inspectedPort.getProfile().get(KEY_HOOK_ID) == null) {
-            LOG.warn(String.format("No Inspection hooks for inspected port %s", inspected.getElementId()));
+            LOG.warn("No Inspection hooks for inspected port {}", inspected.getElementId());
             return null;
         }
 
         String hookId = (String) inspectedPort.getProfile().get(KEY_HOOK_ID);
-        FlowClassifier flowClassifier = this.osClient.sfc().flowclassifiers().get(hookId);
+        FlowClassifier flowClassifier = this.osCalls.getFlowClassifier(hookId);
 
         if (flowClassifier == null) {
             setHookOnPort(inspectedPort.getId(), null);
-            LOG.warn(String.format("Inspection hook %s for inspected port %s no longer exists!",
-                     hookId, inspected.getElementId()));
+            LOG.warn("Inspection hook {} for inspected port {} no longer exists!",
+                     hookId, inspected.getElementId());
             return null;
         }
 
         return flowClassifier;
+    }
+
+    /**
+     *
+     * @param port
+     * @param hookId set to null to un-hook
+     * @return modified port
+     */
+    public void setHookOnPort(String portId, String hookId) {
+        Port port = this.osCalls.getPort(portId);
+
+        if (port == null) {
+            return;
+        }
+
+        Map<String, Object> profile = new HashMap<>();
+        if (hookId == null) {
+            profile.remove(KEY_HOOK_ID);
+        } else {
+            profile.put(KEY_HOOK_ID, hookId);
+        }
+
+        port = port.toBuilder().profile(profile).build();
+        this.osCalls.updatePort(port);
     }
 
     public NetworkElementEntity retrieveNetworkElementFromOS(String portId, String portPairId) {
@@ -334,10 +346,10 @@ public class RedirectionApiUtils {
             return null;
         }
 
-        Port port = this.osClient.networking().port().get(portId);
+        Port port = this.osCalls.getPort(portId);
 
         if (port == null) {
-            LOG.error("Port {} not found on openstack {}", portId, this.osClient.getEndpoint());
+            LOG.error("Port {} not found on openstack", portId);
             return null;
         }
 
@@ -350,12 +362,12 @@ public class RedirectionApiUtils {
     }
 
     public void validatePPGList(List<NetworkElement> portPairGroups) {
-        List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
+        List<? extends PortChain> portChains = this.osCalls.listPortChains();
         for (NetworkElement ne : portPairGroups) {
             checkArgument(ne != null && ne.getElementId() != null,
                          "null passed for %s !", "Port Pair Group Id");
 
-            PortPairGroup portPairGroup = getPortPairGroup(ne.getElementId());
+            PortPairGroup portPairGroup = this.osCalls.getPortPairGroup(ne.getElementId());
 
             checkArgument(portPairGroup != null && portPairGroup.getId() != null,
                           "Cannot find %s by id: %s!", "Port Pair Group", ne.getElementId());
@@ -370,188 +382,4 @@ public class RedirectionApiUtils {
             }
         }
     }
-
-    /**
-     * Throw exception message in the format "null passed for 'type'!"
-     */
-    public void throwExceptionIfNullOrEmptyNetworkElementList(List<NetworkElement> neList, String type) {
-        if (neList == null || neList.isEmpty()) {
-            String msg = String.format("null passed for %s !", type);
-            LOG.error(msg);
-            throw new IllegalArgumentException(msg);
-        }
-    }
-
-    /**
-     * Throw exception message in the format "null passed for 'type'!"
-     */
-    public void throwExceptionIfNullElementAndParentId(Element element, String type) {
-       if (element == null || element.getParentId() == null) {
-           String msg = String.format("null passed for %s !", type);
-           LOG.error(msg);
-           throw new IllegalArgumentException(msg);
-       }
-   }
-
-  /**
-   *
-   * @param port
-   * @param hookId set to null to un-hook
-   * @return modified port
-   */
-  public void setHookOnPort(String portId, String hookId) {
-      Port port = this.osClient.networking().port().get(portId);
-
-      if (port == null) {
-          return;
-      }
-
-      Map<String, Object> profile = new HashMap<>();
-      if (hookId == null) {
-          profile.remove(KEY_HOOK_ID);
-      } else {
-          profile.put(KEY_HOOK_ID, hookId);
-      }
-
-      port = port.toBuilder().profile(profile).build();
-      this.osClient.networking().port().update(port);
-  }
-
-  public FlowClassifier createFlowClassifier(FlowClassifier flowClassifier) {
-      checkArgument(flowClassifier != null, "null passed for %s !", "Flow Classifier");
-      String ip = flowClassifier.getDestinationIpPrefix();
-
-      if (ip != null && !ip.endsWith("/32")) {
-          ip += "/32";
-      }
-
-      flowClassifier = flowClassifier.toBuilder().id(null).destinationIpPrefix(ip).build();
-      return this.osClient.sfc().flowclassifiers().create(flowClassifier);
-  }
-
-  public PortChain createPortChain(PortChain portChain) {
-      checkArgument(portChain != null, "null passed for %s !", "Port Chain");
-      portChain = portChain.toBuilder().id(null).build();
-      portChain = this.osClient.sfc().portchains().create(portChain);
-
-      return fixPortChainCollections(portChain);
-  }
-
-  public PortPairGroup createPortPairGroup(PortPairGroup portPairGroup) {
-      checkArgument(portPairGroup != null, "null passed for %s !", "Port Pair Group");
-      portPairGroup = portPairGroup.toBuilder().id(null).build();
-
-      portPairGroup = this.osClient.sfc().portpairgroups().create(portPairGroup);
-      return portPairGroup;
-  }
-
-  public PortPair createPortPair(PortPair portPair) {
-      checkArgument(portPair != null, "null passed for %s !", "Port Pair");
-      portPair = portPair.toBuilder().id(null).build();
-
-      portPair = this.osClient.sfc().portpairs().create(portPair);
-      return portPair;
-  }
-
-  public FlowClassifier getFlowClassifier(String flowClassifierId) {
-      return this.osClient.sfc().flowclassifiers().get(flowClassifierId);
-  }
-
-  public PortChain getPortChain(String portChainId) {
-      PortChain portChain = this.osClient.sfc().portchains().get(portChainId);
-      return fixPortChainCollections(portChain);
-  }
-
-  public PortPairGroup getPortPairGroup(String portPairGroupId) {
-      return this.osClient.sfc().portpairgroups().get(portPairGroupId);
-  }
-
-  public PortPair getPortPair(String portPairId) {
-      return this.osClient.sfc().portpairs().get(portPairId);
-  }
-
-  public Port getPort(String portId) {
-      return this.osClient.networking().port().get(portId);
-  }
-
-  public FlowClassifier updateFlowClassifier(String flowClassifierId, FlowClassifier flowClassifier) {
-      checkArgument(flowClassifierId != null, "null passed for %s !", "Flow Classifier Id");
-      checkArgument(flowClassifier != null, "null passed for %s !", "Flow Classifier");
-
-      // OS won't let us modify some attributes. Must be null on update object
-      flowClassifier = flowClassifier.toBuilder().id(null).projectId(null).build();
-
-      return this.osClient.sfc().flowclassifiers().update(flowClassifierId, flowClassifier);
-  }
-
-  public PortChain updatePortChain(String portChainId, PortChain portChain) {
-      checkArgument(portChainId != null, "null passed for %s !", "Port Chain Id");
-      checkArgument(portChain != null, "null passed for %s !", "Port Chain");
-
-      // OS won't let us modify some attributes. Must be null on update object
-      portChain = portChain.toBuilder().id(null).projectId(null).chainParameters(null).chainId(null).build();
-
-      portChain = this.osClient.sfc().portchains().update(portChainId, portChain);
-      return fixPortChainCollections(portChain);
-  }
-
-  public PortPairGroup updatePortPairGroup(String portPairGroupId, PortPairGroup portPairGroup) {
-      checkArgument(portPairGroupId != null, "null passed for %s !", "Port Pair Group Id");
-      checkArgument(portPairGroup != null, "null passed for %s !", "Port Pair Group");
-
-      // OS won't let us modify some attributes. Must be null on update object
-      portPairGroup  = portPairGroup.toBuilder().id(null).projectId(null).portPairGroupParameters(null).build();
-
-      portPairGroup = this.osClient.sfc().portpairgroups().update(portPairGroupId, portPairGroup);
-      return portPairGroup;
-  }
-
-  public PortPair updatePortPair(String portPairId, PortPair portPair) {
-      checkArgument(portPairId != null, "null passed for %s !", "Port Pair Id");
-      checkArgument(portPair != null, "null passed for %s !", "Port Pair");
-
-      // OS won't let us modify some attributes. Must be null on update object
-      portPair = portPair.toBuilder().id(null).projectId(null).build();
-      portPair = this.osClient.sfc().portpairs().update(portPairId, portPair);
-      return portPair;
-  }
-
-  public Port updatePort(Port port) {
-      return this.osClient.networking().port().update(port);
-  }
-
-  public ActionResponse deleteFlowClassifier(String flowClassifierId) {
-      return this.osClient.sfc().flowclassifiers().delete(flowClassifierId);
-  }
-
-  public ActionResponse deletePortChain(String portChainId) {
-      ActionResponse response = this.osClient.sfc().portchains().delete(portChainId);
-      return response;
-  }
-
-  public ActionResponse deletePortPairGroup(String portPairGroupId) {
-      ActionResponse response = this.osClient.sfc().portpairgroups().delete(portPairGroupId);
-      return response;
-  }
-
-  public ActionResponse deletePortPair(String portPairId) {
-      ActionResponse response = this.osClient.sfc().portpairs().delete(portPairId);
-      return response;
-  }
-
-  private PortChain fixPortChainCollections(PortChain portChain) {
-      if (portChain == null) {
-          return null;
-      }
-
-      if (portChain.getFlowClassifiers() == null) {
-          portChain = portChain.toBuilder().flowClassifiers(new ArrayList<>()).build();
-      }
-
-      if (portChain.getPortPairGroups() == null) {
-          portChain = portChain.toBuilder().portPairGroups(new ArrayList<>()).build();
-      }
-
-      return portChain;
-  }
 }
