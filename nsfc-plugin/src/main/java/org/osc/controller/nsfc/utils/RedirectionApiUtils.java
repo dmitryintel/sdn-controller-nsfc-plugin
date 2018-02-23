@@ -65,7 +65,7 @@ public class RedirectionApiUtils {
 
         List<String> ips = new ArrayList<>();
         if (port.getFixedIps() != null) {
-            ips = port.getFixedIps().stream().map(ip -> ip.toString()).collect(Collectors.toList());
+            ips = port.getFixedIps().stream().map(ip -> ip.getIpAddress()).collect(Collectors.toList());
         }
         return new NetworkElementEntity(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
     }

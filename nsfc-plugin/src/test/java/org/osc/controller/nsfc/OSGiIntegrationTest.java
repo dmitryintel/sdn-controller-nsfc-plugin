@@ -17,26 +17,29 @@
 package org.osc.controller.nsfc;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.*;
 import static org.ops4j.pax.exam.CoreOptions.*;
+import static org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi.KEY_HOOK_ID;
 import static org.osc.sdk.controller.FailurePolicyType.NA;
 import static org.osc.sdk.controller.TagEncapsulationType.VLAN;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.api.client.IOSClientBuilder.V3;
 import org.openstack4j.model.common.Identifier;
+import org.openstack4j.model.network.Port;
 import org.openstack4j.model.network.ext.FlowClassifier;
 import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
@@ -58,6 +61,8 @@ import org.osc.sdk.controller.element.VirtualizationConnectorElement;
 import org.osgi.framework.BundleContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Sets;
 
 //@RunWith(PaxExam.class)
 //@ExamReactorStrategy(PerClass.class)
@@ -91,7 +96,7 @@ public class OSGiIntegrationTest {
 
     private static final String INSPECTED_ID = "5db6a898-956f-424f-8371-abcf7a20aa03";
     private static final String INSPECTED_IP = "172.16.0.3";
-    private static final String INSPECTED_MAC = "fa:16:3e:72:83:ab";
+    private static final String INSPECTED_MAC = "fa:16:3e:f1:01:34";
 
     // just for verifying stuff
     private OSClientV3 osClient;
@@ -350,15 +355,43 @@ public class OSGiIntegrationTest {
 
         InspectionHookElement ih = this.redirApi.getInspectionHook(hookId);
         assertNotNull(ih);
-        assertNotNull(ih.getInspectionPort());
+        assertNotNull(ih.getInspectedPort());
+        assertEquals(INSPECTED_ID, ih.getInspectedPort().getElementId());
+        assertNotNull(ih.getInspectedPort().getPortIPs());
+        assertNotNull(ih.getInspectedPort().getMacAddresses());
+        assertEquals(INSPECTED_IP, ih.getInspectedPort().getPortIPs().get(0));
+        assertEquals(INSPECTED_MAC, ih.getInspectedPort().getMacAddresses().get(0));
+
+        Port inspectedPortCheck = this.osClient.networking().port().get(INSPECTED_ID);
+        assertNotNull(inspectedPortCheck);
+        assertNotNull(inspectedPortCheck.getProfile());
+        assertEquals(hookId, inspectedPortCheck.getProfile().get(KEY_HOOK_ID));
+
         String sfcId = ih.getInspectionPort().getElementId();
-        Assert.assertEquals(sfc.getElementId(), sfcId);
+        assertEquals(sfc.getElementId(), sfcId);
+
+        ServiceFunctionChainEntity sfcEntityCheck = (ServiceFunctionChainEntity) ih.getInspectionPort();
+        assertEquals(sfc.getElementId(), sfcEntityCheck.getElementId());
+        assertNotNull(sfcEntityCheck.getInspectionHooks());
+        assertEquals(1, sfcEntityCheck.getInspectionHooks().size());
+        assertEquals(hookId, sfcEntityCheck.getInspectionHooks().iterator().next().getHookId());
+        assertNotNull(sfcEntityCheck.getPortPairGroups());
+        assertEquals(1, sfcEntityCheck.getPortPairGroups().size());
+        assertNotNull(sfcEntityCheck.getPortPairGroups().get(0).getPortPairs());
+        assertEquals(2, sfcEntityCheck.getPortPairGroups().get(0).getPortPairs().size());
+
+        Set<String> portPairIds = sfcEntityCheck.getPortPairGroups().get(0).getPortPairs().stream()
+                                    .map(pp -> pp.getElementId()).collect(toSet());
+        assertEquals(Sets.newHashSet(this.inspectionPortEntity0.getElementId(),
+                                     this.inspectionPortEntity1.getElementId()),
+                     portPairIds);
 
         PortChain portChainCheck = this.osClient.sfc().portchains().get(sfcId);
         FlowClassifier flowClassifierCheck = this.osClient.sfc().flowclassifiers().get(hookId);
         assertNotNull(portChainCheck);
         assertNotNull(flowClassifierCheck);
         assertTrue(portChainCheck.getFlowClassifiers().contains(hookId));
+
     }
 
     public void cleanPortPairsPPGsAndChains() {
