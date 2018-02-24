@@ -58,7 +58,7 @@ public class RedirectionApiUtils {
         this.osCalls = osCalls;
     }
 
-    private NetworkElementEntity makeNetworkElementEntity(Port port, String parentId) {
+    private NetworkElementEntity fetchEntityWithChildDepends(Port port, String parentId) {
         checkArgument(port != null, "null passed for %s !", "OS Port");
 
         List<String> ips = new ArrayList<>();
@@ -68,7 +68,7 @@ public class RedirectionApiUtils {
         return new NetworkElementEntity(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
     }
 
-    private InspectionPortEntity makeInspectionPortEntity(PortPair portPair) {
+    private InspectionPortEntity fetchPortPairWithChildDepends(PortPair portPair) {
         checkArgument(portPair != null, "null passed for %s !", "Inspection Port");
 
         Port ingressPort = portPair.getIngressId() != null ? this.osCalls.getPort(portPair.getIngressId())
@@ -78,19 +78,19 @@ public class RedirectionApiUtils {
 
         NetworkElementEntity ingressEntity = null;
         if (ingressPort != null) {
-            ingressEntity = makeNetworkElementEntity(ingressPort, portPair.getId());
+            ingressEntity = fetchEntityWithChildDepends(ingressPort, portPair.getId());
         }
 
         NetworkElementEntity egressEntity = null;
         if (egressPort != null) {
-            egressEntity = makeNetworkElementEntity(egressPort, portPair.getId());
+            egressEntity = fetchEntityWithChildDepends(egressPort, portPair.getId());
         }
 
         return new InspectionPortEntity(portPair.getId(), null,
                                         ingressEntity, egressEntity);
     }
 
-    private PortPairGroupEntity makePortPairGroupEntity(PortPairGroup portPairGroup) {
+    private PortPairGroupEntity fetchPortPairGroupWithChildDepends(PortPairGroup portPairGroup) {
         checkArgument(portPairGroup != null, "null passed for %s !", "Port Pair Group");
         PortPairGroupEntity retVal = new PortPairGroupEntity(portPairGroup.getId());
 
@@ -103,7 +103,7 @@ public class RedirectionApiUtils {
 
             for (PortPair portPair : portPairs) {
                 try {
-                    InspectionPortEntity inspectionPortEntity = makeInspectionPortEntity(portPair);
+                    InspectionPortEntity inspectionPortEntity = fetchPortPairWithChildDepends(portPair);
                     retVal.getPortPairs().add(inspectionPortEntity);
                     inspectionPortEntity.setPortPairGroup(retVal);
                 } catch (IllegalArgumentException e) {
@@ -117,7 +117,7 @@ public class RedirectionApiUtils {
         return retVal;
     }
 
-    private ServiceFunctionChainEntity makeServiceFunctionChainEntity(PortChain portChain) {
+    private ServiceFunctionChainEntity fetchSFCWithChildDepeds(PortChain portChain) {
 
         ServiceFunctionChainEntity retVal =  new ServiceFunctionChainEntity(portChain.getId());
 
@@ -130,7 +130,7 @@ public class RedirectionApiUtils {
 
             for (PortPairGroup portPairGroup : portPairGroups) {
                 try {
-                    PortPairGroupEntity portPairGroupEntity = makePortPairGroupEntity(portPairGroup);
+                    PortPairGroupEntity portPairGroupEntity = fetchPortPairGroupWithChildDepends(portPairGroup);
                     retVal.getPortPairGroups().add(portPairGroupEntity);
                     portPairGroupEntity.setServiceFunctionChain(retVal);
                 } catch (IllegalArgumentException e) {
@@ -143,17 +143,17 @@ public class RedirectionApiUtils {
         return retVal;
     }
 
-    public InspectionHookEntity makeInspectionHookEntity(String flowClassifierId) {
+    public InspectionHookEntity fetchFlowClassifier(String flowClassifierId) {
         FlowClassifier flowClassifier = this.osCalls.getFlowClassifier(flowClassifierId);
 
         if (flowClassifier == null) {
             return null;
         }
 
-        Port port = findProtectedPort(flowClassifier);
+        Port port = fetchProtectedPort(flowClassifier);
 
         if (port != null) {
-            NetworkElementEntity inspectedPort = makeNetworkElementEntity(port, flowClassifier.getId());
+            NetworkElementEntity inspectedPort = fetchEntityWithChildDepends(port, flowClassifier.getId());
             InspectionHookEntity retVal = new InspectionHookEntity(inspectedPort, null);
             retVal.setHookId(flowClassifierId);
             return retVal;
@@ -162,7 +162,7 @@ public class RedirectionApiUtils {
         return null;
     }
 
-    public Port findProtectedPort(FlowClassifier flowClassifier) {
+    public Port fetchProtectedPort(FlowClassifier flowClassifier) {
         String ip = flowClassifier.getDestinationIpPrefix();
 
         if (ip != null && ip.matches("^.*/32$")) {
@@ -179,7 +179,7 @@ public class RedirectionApiUtils {
         return port;
     }
 
-    private InspectionPortEntity findPortPairUnderGroup(PortPairGroupEntity portPairGroupEntity, String portPairId) {
+    private InspectionPortEntity findPortPairUnderPortPairGroup(PortPairGroupEntity portPairGroupEntity, String portPairId) {
         checkArgument(portPairGroupEntity != null, "null passed for %s !", "Port Pair Group Entity");
         checkArgument(portPairId != null, "null passed for %s !", "Port Pair Id");
         if (portPairGroupEntity.getPortPairs() != null) {
@@ -188,9 +188,10 @@ public class RedirectionApiUtils {
         }
 
         return null;
+
     }
 
-    private PortPairGroupEntity findIn(ServiceFunctionChainEntity sfcEntity, String portPairGroupId) {
+    private PortPairGroupEntity findPortPairGroupUnderSFCEntity(ServiceFunctionChainEntity sfcEntity, String portPairGroupId) {
         checkArgument(sfcEntity != null, "null passed for %s !", "Service Function Chain");
         checkArgument(portPairGroupId != null, "null passed for %s !", "Port Pair Group Id");
         if (sfcEntity.getPortPairGroups() != null) {
@@ -202,13 +203,13 @@ public class RedirectionApiUtils {
     }
 
     /**
-     * Expensive call: Searches through the list port pairs.
+     * Expensive call: Searches through the list port pairs from openstack.
      * @param ingress
      * @param egress
      *
      * @return PortPair
      */
-    public PortPair findInspectionPortByNetworkElements(NetworkElement ingress, NetworkElement egress) {
+    public PortPair fetchInspectionPortByNetworkElements(NetworkElement ingress, NetworkElement egress) {
         String ingressId = ingress != null ? ingress.getElementId() : null;
         String egressId = egress != null ? egress.getElementId() : null;
 
@@ -222,7 +223,7 @@ public class RedirectionApiUtils {
         return portPairOpt.orElse(null);
     }
 
-    public PortPairGroup findContainingPortPairGroup(String portPairId) {
+    public PortPairGroup fetchContainingPortPairGroup(String portPairId) {
         List<? extends PortPairGroup> portPairGroups = this.osCalls.listPortPairGroups();
         Optional<? extends PortPairGroup> ppgOpt = portPairGroups.stream()
                                         .filter(ppg -> ppg.getPortPairs().contains(portPairId))
@@ -230,7 +231,7 @@ public class RedirectionApiUtils {
         return ppgOpt.orElse(null);
     }
 
-    public PortChain findContainingPortChain(String portPairGroupId) {
+    public PortChain fetchContainingPortChain(String portPairGroupId) {
         List<? extends PortChain> portChains = this.osCalls.listPortChains();
         Optional<? extends PortChain> pcOpt = portChains.stream()
                                         .filter(pc -> pc.getPortPairGroups().contains(portPairGroupId))
@@ -238,7 +239,7 @@ public class RedirectionApiUtils {
         return pcOpt.orElse(null);
     }
 
-    public PortChain findContainingPortChainForFC(String flowClassifierId) {
+    public PortChain fetchContainingPortChainForFC(String flowClassifierId) {
         List<? extends PortChain> portChains = this.osCalls.listPortChains();
         Optional<? extends PortChain> pcOpt = portChains.stream()
                                         .filter(pc -> pc.getFlowClassifiers() != null
@@ -249,61 +250,61 @@ public class RedirectionApiUtils {
 
     /**
      * Fetches InspectionPortEntity from openStack, with full dependencies,
-     * including parent (Port Pair Group) and parent's parent (Service Function Chain.)
+     * including the parent (Port Pair Group) and parent's parent (Service Function Chain.)
      * <p/>
      *
-     * Very expensive call: potentially does three list() calls on OS.
+     * Very expensive call: potentially does three list() calls on openstack.
      *
      * @param portPair assumed not null
      * @return InspectionPortEntity
      */
-    public InspectionPortEntity findComplete(PortPair portPair) {
-        PortPairGroup portPairGroup = findContainingPortPairGroup(portPair.getId());
+    public InspectionPortEntity fetchPortPairEntityWithAllDepends(PortPair portPair) {
+        PortPairGroup portPairGroup = fetchContainingPortPairGroup(portPair.getId());
         if (portPairGroup != null) {
-            PortChain portChain = findContainingPortChain(portPairGroup.getId());
+            PortChain portChain = fetchContainingPortChain(portPairGroup.getId());
             PortPairGroupEntity portPairGroupEntity;
             if (portChain != null) {
                 ServiceFunctionChainEntity serviceFunctionChainEntity =
-                        makeServiceFunctionChainEntity(portChain);
+                        fetchSFCWithChildDepeds(portChain);
                 portPairGroupEntity =
-                        findIn(serviceFunctionChainEntity, portPairGroup.getId());
+                        findPortPairGroupUnderSFCEntity(serviceFunctionChainEntity, portPairGroup.getId());
             } else {
-                portPairGroupEntity = makePortPairGroupEntity(portPairGroup);
+                portPairGroupEntity = fetchPortPairGroupWithChildDepends(portPairGroup);
             }
-            return findPortPairUnderGroup(portPairGroupEntity, portPair.getId());
+            return findPortPairUnderPortPairGroup(portPairGroupEntity, portPair.getId());
         } else {
-            return makeInspectionPortEntity(portPair);
+            return fetchPortPairWithChildDepends(portPair);
         }
     }
 
     /**
-     * Expensive call: Searches through the list port chains.
+     * Expensive call: Searches through the list port chains from openstack.
      * @param portPairGroup assumed not null
      * @return PortPairGroupEntity
      */
-    public PortPairGroupEntity findComplete(PortPairGroup portPairGroup) {
-       PortChain portChain = findContainingPortChain(portPairGroup.getId());
+    public PortPairGroupEntity fetchPortPairGroupWithAllDepends(PortPairGroup portPairGroup) {
+       PortChain portChain = fetchContainingPortChain(portPairGroup.getId());
        PortPairGroupEntity portPairGroupEntity;
        if (portChain != null) {
            ServiceFunctionChainEntity serviceFunctionChainEntity =
-                   makeServiceFunctionChainEntity(portChain);
+                   fetchSFCWithChildDepeds(portChain);
            portPairGroupEntity =
-                   findIn(serviceFunctionChainEntity, portPairGroup.getId());
+                   findPortPairGroupUnderSFCEntity(serviceFunctionChainEntity, portPairGroup.getId());
        } else {
-           portPairGroupEntity = makePortPairGroupEntity(portPairGroup);
+           portPairGroupEntity = fetchPortPairGroupWithChildDepends(portPairGroup);
        }
 
        return portPairGroupEntity;
    }
 
-    public ServiceFunctionChainEntity findComplete(PortChain portChain) {
-        return makeServiceFunctionChainEntity(portChain);
+    public ServiceFunctionChainEntity fetchSFCWithAllDepends(PortChain portChain) {
+        return fetchSFCWithChildDepeds(portChain);
     }
 
     /**
      * Assumes argument is not null
      */
-    public FlowClassifier findInspHookByInspectedPort(NetworkElement inspected) {
+    public FlowClassifier fetchInspHookByInspectedPort(NetworkElement inspected) {
         LOG.info("Finding Inspection hooks for inspected port {}", inspected);
 
         Port inspectedPort  = this.osCalls.getPort(inspected.getElementId());
@@ -354,7 +355,7 @@ public class RedirectionApiUtils {
         this.osCalls.updatePort(port);
     }
 
-    public NetworkElementEntity retrieveNetworkElementFromOS(String portId, String portPairId) {
+    public NetworkElementEntity fetchNetworkElementFromOS(String portId, String portPairId) {
         if (portId == null) {
             return null;
         }

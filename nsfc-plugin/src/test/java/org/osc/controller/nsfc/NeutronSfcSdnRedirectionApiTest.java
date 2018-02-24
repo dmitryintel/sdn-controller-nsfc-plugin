@@ -230,8 +230,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
 
         assertEquals(inspectionPortElement.getElementId(), portPair.getId());
         String ppgId = foundInspectionPort.getParentId();
-        String ingressPortId = foundInspectionPort.getIngressPort().getElementId();
-        String egressPortId = foundInspectionPort.getEgressPort().getElementId();
         assertEquals(portPairGroup.getId(), ppgId);
 
         // Act.
