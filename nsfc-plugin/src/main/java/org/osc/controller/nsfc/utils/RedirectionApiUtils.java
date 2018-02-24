@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.openstack4j.api.Builders;
 import org.openstack4j.model.network.Port;
 import org.openstack4j.model.network.ext.FlowClassifier;
 import org.openstack4j.model.network.ext.PortChain;
@@ -200,6 +201,13 @@ public class RedirectionApiUtils {
         return null;
     }
 
+    /**
+     * Expensive call: Searches through the list port pairs.
+     * @param ingress
+     * @param egress
+     *
+     * @return PortPair
+     */
     public PortPair findInspectionPortByNetworkElements(NetworkElement ingress, NetworkElement egress) {
         String ingressId = ingress != null ? ingress.getElementId() : null;
         String egressId = egress != null ? egress.getElementId() : null;
@@ -240,9 +248,14 @@ public class RedirectionApiUtils {
     }
 
     /**
-     * Very expensive call: does full object search
+     * Fetches InspectionPortEntity from openStack, with full dependencies,
+     * including parent (Port Pair Group) and parent's parent (Service Function Chain.)
+     * <p/>
+     *
+     * Very expensive call: potentially does three list() calls on OS.
+     *
      * @param portPair assumed not null
-     * @return
+     * @return InspectionPortEntity
      */
     public InspectionPortEntity findComplete(PortPair portPair) {
         PortPairGroup portPairGroup = findContainingPortPairGroup(portPair.getId());
@@ -264,9 +277,9 @@ public class RedirectionApiUtils {
     }
 
     /**
-     * Expensive call: does full object search
+     * Expensive call: Searches through the list port chains.
      * @param portPairGroup assumed not null
-     * @return
+     * @return PortPairGroupEntity
      */
     public PortPairGroupEntity findComplete(PortPairGroup portPairGroup) {
        PortChain portChain = findContainingPortChain(portPairGroup.getId());
@@ -288,7 +301,7 @@ public class RedirectionApiUtils {
     }
 
     /**
-     * Assumes arguments is not null
+     * Assumes argument is not null
      */
     public FlowClassifier findInspHookByInspectedPort(NetworkElement inspected) {
         LOG.info("Finding Inspection hooks for inspected port {}", inspected);
@@ -382,4 +395,19 @@ public class RedirectionApiUtils {
             }
         }
     }
+
+    public FlowClassifier buildFlowClassifier(String inspectedPortIp, ServiceFunctionChainEntity sfcEntity) {
+        FlowClassifier flowClassifier;
+        String sourcePortId = sfcEntity.getPortPairGroups().get(0).getPortPairs().get(0).getIngressPort().getElementId();
+        int nGroups = sfcEntity.getPortPairGroups().size();
+        String destPortId = sfcEntity.getPortPairGroups().get(nGroups - 1).getPortPairs().get(0).getEgressPort().getElementId();
+
+        flowClassifier = Builders.flowClassifier()
+                             .destinationIpPrefix(inspectedPortIp)
+                             .logicalSourcePort(sourcePortId)
+                             .logicalDestinationPort(destPortId)
+                             .build();
+        return flowClassifier;
+    }
+
 }

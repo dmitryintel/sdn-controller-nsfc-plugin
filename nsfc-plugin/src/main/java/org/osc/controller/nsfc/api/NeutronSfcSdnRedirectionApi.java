@@ -217,14 +217,16 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             throw new IllegalStateException(msg);
         }
 
-        ServiceFunctionChainEntity sfcEntity = (ServiceFunctionChainEntity) inspectionPortElement;
-
         LOG.info("Installing Inspection Hook for (Inspected Port {} ; Inspection Port {}):",
                 inspectedPortElement, inspectionPortElement);
 
         PortChain portChain = this.osCalls.getPortChain(inspectionPortElement.getElementId());
         checkArgument(portChain != null && portChain.getId() != null,
                       "Cannot find %s by id: %s!", "Service Function Chain", inspectionPortElement.getElementId());
+        checkArgument(portChain.getPortPairGroups() != null && portChain.getPortPairGroups().size() > 0,
+                      "Cannot install inspection hook with empty port chain!");
+
+        ServiceFunctionChainEntity sfcEntity = this.utils.findComplete(portChain);
 
         // if inspectedPort is being protected, it doesn't matter what is the inspection port
         FlowClassifier flowClassifier = this.utils.findInspHookByInspectedPort(inspectedPortElement);
@@ -235,15 +237,8 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             throw new IllegalStateException(msg);
         }
 
-        String sourcePortId = sfcEntity.getPortPairGroups().get(0).getPortPairs().get(0).getIngressPort().getElementId();
-        int nGroups = sfcEntity.getPortPairGroups().size();
-        String destPortId = sfcEntity.getPortPairGroups().get(0).getPortPairs().get(nGroups - 1).getEgressPort().getElementId();
-
-        flowClassifier = Builders.flowClassifier()
-                             .destinationIpPrefix(inspectedPortElement.getPortIPs().get(0))
-                             .logicalSourcePort(sourcePortId)
-                             .logicalDestinationPort(destPortId)
-                             .build();
+        String inspectedIp = inspectedPortElement.getPortIPs().get(0);
+        flowClassifier = this.utils.buildFlowClassifier(inspectedIp, sfcEntity);
 
         flowClassifier = this.osCalls.createFlowClassifier(flowClassifier);
         portChain.getFlowClassifiers().add(flowClassifier.getId());
