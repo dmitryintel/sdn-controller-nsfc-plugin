@@ -51,10 +51,6 @@ public class InspectionHookEntity implements InspectionHookElement {
         return this.inspectedPort;
     }
 
-    public void setInspectedPort(NetworkElementEntity inspectedPort) {
-        this.inspectedPort = inspectedPort;
-    }
-
     public ServiceFunctionChainEntity getServiceFunctionChain() {
         return this.serviceFunctionChain;
     }

@@ -47,10 +47,6 @@ public class InspectionPortEntity implements InspectionPortElement {
         return this.elementId;
     }
 
-    public void setElementId(String elementId) {
-        this.elementId = elementId;
-    }
-
     @Override
     public NetworkElementEntity getIngressPort() {
         return this.ingressPort;

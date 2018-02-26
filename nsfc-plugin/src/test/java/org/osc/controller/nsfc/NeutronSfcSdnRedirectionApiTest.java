@@ -110,6 +110,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertNotNull(inspectionPortElement.getParentId());
 
         InspectionPortElement foundInspPortElement = this.redirApi.getInspectionPort(inspectionPortElement);
+        assertNotNull(foundInspPortElement);
     }
 
 
@@ -669,21 +670,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
             ppgListTarget.add(ppgId);
         }
         Assert.assertEquals("The list of port pair group ids is different than expected", ppgListSrc, ppgListTarget);
-    }
-
-    @Test
-    public void testApi_DeleteNetworkElementWhenSfcToDeleteIsNotFound_ThrowsIllegalArgumentException() throws Exception {
-        // Arrange
-        DefaultNetworkPort ne = new DefaultNetworkPort();
-
-        ne.setElementId("bad-id");
-
-        this.exception.expect(IllegalArgumentException.class);
-        this.exception
-                .expectMessage(String.format("Cannot find %s by id: %s!", "Service Function Chain", ne.getElementId()));
-
-        // Act
-        this.redirApi.deleteNetworkElement(ne);
     }
 
     @Test

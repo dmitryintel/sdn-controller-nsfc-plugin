@@ -54,14 +54,6 @@ public class NetworkElementEntity implements NetworkElement {
         this.elementId = elementId;
     }
 
-    public InspectionHookEntity getInspectionHook() {
-        return this.inspectionHook;
-    }
-
-    public void setInspectionHook(InspectionHookEntity inspectionHook) {
-        this.inspectionHook = inspectionHook;
-    }
-
     @Override
     public List<String> getPortIPs() {
         return this.portIPs;
