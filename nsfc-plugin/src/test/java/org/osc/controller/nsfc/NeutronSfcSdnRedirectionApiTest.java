@@ -86,29 +86,9 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         //Assert.
         assertNotNull(inspectionPortElement.getElementId());
         assertNotNull(inspectionPortElement.getParentId());
-        assertNotNull(inspectionPortElement.getIngressPort());
-        assertNotNull(inspectionPortElement.getEgressPort());
-        assertNotNull(inspectionPortElement.getIngressPort().getMacAddresses());
-        assertNotNull(inspectionPortElement.getIngressPort().getElementId());
-        assertNotNull(inspectionPortElement.getEgressPort().getMacAddresses());
-        assertNotNull(inspectionPortElement.getEgressPort().getElementId());
-
-        Port foundIngress = this.osClient.networking().port().get(inspectionPortElement.getIngressPort().getElementId());
-        assertNotNull(foundIngress);
-        assertEquals(inspectionPortElement.getIngressPort().getElementId(), foundIngress.getId());
-
-        Port foundEgress = this.osClient.networking().port().get(inspectionPortElement.getEgressPort().getElementId());
-        assertNotNull(foundEgress);
-        assertEquals(inspectionPortElement.getEgressPort().getElementId(), foundEgress.getId());
 
         InspectionPortElement foundInspPortElement = this.redirApi.getInspectionPort(inspectionPortElement);
-        assertEquals(inspectionPortElement.getIngressPort().getElementId(),
-                foundInspPortElement.getIngressPort().getElementId());
-        assertEquals(inspectionPortElement.getEgressPort().getElementId(),
-                foundInspPortElement.getEgressPort().getElementId());
         assertEquals(inspectionPortElement.getElementId(), foundInspPortElement.getElementId());
-
-        assertEquals(foundInspPortElement.getParentId(), inspectionPortElement.getParentId());
     }
 
     @Test
@@ -128,26 +108,8 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         //Assert.
         assertNotNull(inspectionPortElement.getElementId());
         assertNotNull(inspectionPortElement.getParentId());
-        assertNotNull(inspectionPortElement.getIngressPort());
-        assertNotNull(inspectionPortElement.getEgressPort());
-        assertNotNull(inspectionPortElement.getIngressPort().getMacAddresses());
-        assertNotNull(inspectionPortElement.getIngressPort().getElementId());
-        assertNotNull(inspectionPortElement.getEgressPort().getMacAddresses());
-        assertNotNull(inspectionPortElement.getEgressPort().getElementId());
-
-        Port foundIngress = this.osClient.networking().port().get(inspectionPortElement.getIngressPort().getElementId());
-
-        assertNotNull(foundIngress);
-        assertEquals(inspectionPortElement.getIngressPort().getElementId(), foundIngress.getId());
 
         InspectionPortElement foundInspPortElement = this.redirApi.getInspectionPort(inspectionPortElement);
-        assertEquals(inspectionPortElement.getIngressPort().getElementId(),
-                foundInspPortElement.getIngressPort().getElementId());
-        assertEquals(inspectionPortElement.getEgressPort().getElementId(),
-                foundInspPortElement.getEgressPort().getElementId());
-        assertEquals(inspectionPortElement.getElementId(), foundInspPortElement.getElementId());
-
-        assertEquals(foundInspPortElement.getParentId(), inspectionPortElement.getParentId());
     }
 
 
@@ -229,15 +191,12 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
                 this.redirApi.getInspectionPort(new InspectionPortEntity(portPair.getId(), null, ingressPortEntity, egressPortEntity));
 
         assertEquals(inspectionPortElement.getElementId(), portPair.getId());
-        String ppgId = foundInspectionPort.getParentId();
-        assertEquals(portPairGroup.getId(), ppgId);
 
         // Act.
         this.redirApi.removeInspectionPort(inspectionPortElement);
 
         // Assert.
         assertNull(this.osClient.sfc().portpairs().get(inspectionPortElement.getElementId()));
-        assertNull(this.osClient.sfc().portpairgroups().get(ppgId));
 
         // Ports themselves are not deleted. Only the pair
         // assertNull(this.osClient.networking().port().get(ingressPortId));
@@ -323,7 +282,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertEquals(hookId, inspectionHook.getHookId());
         assertNotNull(inspectionHook.getServiceFunctionChain());
         assertEquals(sfc.getElementId(), inspectionHook.getServiceFunctionChain().getElementId());
-        assertEquals(inspected.getElementId(), inspectionHook.getInspectedPort().getElementId());
     }
 
     @Test
@@ -392,7 +350,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         InspectionHookElement updatedHook = this.redirApi.getInspectionHook(hookId);
 
         assertNotNull(updatedHook);
-        assertEquals(inspected.getElementId(), updatedHook.getInspectedPort().getElementId());
         assertEquals(sfcOther.getElementId(), updatedHook.getInspectionPort().getElementId());
     }
 

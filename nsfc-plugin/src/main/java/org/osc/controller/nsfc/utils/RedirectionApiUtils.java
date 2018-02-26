@@ -17,7 +17,6 @@
 package org.osc.controller.nsfc.utils;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toSet;
 import static org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi.KEY_HOOK_ID;
@@ -39,7 +38,6 @@ import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.openstack4j.model.network.options.PortListOptions;
-import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
@@ -143,25 +141,6 @@ public class RedirectionApiUtils {
         return retVal;
     }
 
-    public InspectionHookEntity fetchFlowClassifier(String flowClassifierId) {
-        FlowClassifier flowClassifier = this.osCalls.getFlowClassifier(flowClassifierId);
-
-        if (flowClassifier == null) {
-            return null;
-        }
-
-        Port port = fetchProtectedPort(flowClassifier);
-
-        if (port != null) {
-            NetworkElementEntity inspectedPort = fetchEntityWithChildDepends(port, flowClassifier.getId());
-            InspectionHookEntity retVal = new InspectionHookEntity(inspectedPort, null);
-            retVal.setHookId(flowClassifierId);
-            return retVal;
-        }
-
-        return null;
-    }
-
     public Port fetchProtectedPort(FlowClassifier flowClassifier) {
         String ip = flowClassifier.getDestinationIpPrefix();
 
@@ -177,29 +156,6 @@ public class RedirectionApiUtils {
                                             && flowClassifier.getId().equals(p.getProfile().get(KEY_HOOK_ID)))
                           .findFirst().orElse(null);
         return port;
-    }
-
-    private InspectionPortEntity findPortPairUnderPortPairGroup(PortPairGroupEntity portPairGroupEntity, String portPairId) {
-        checkArgument(portPairGroupEntity != null, "null passed for %s !", "Port Pair Group Entity");
-        checkArgument(portPairId != null, "null passed for %s !", "Port Pair Id");
-        if (portPairGroupEntity.getPortPairs() != null) {
-            return portPairGroupEntity.getPortPairs().stream().filter(pp -> portPairId.equals(pp.getElementId()))
-                            .findFirst().orElse(null);
-        }
-
-        return null;
-
-    }
-
-    private PortPairGroupEntity findPortPairGroupUnderSFCEntity(ServiceFunctionChainEntity sfcEntity, String portPairGroupId) {
-        checkArgument(sfcEntity != null, "null passed for %s !", "Service Function Chain");
-        checkArgument(portPairGroupId != null, "null passed for %s !", "Port Pair Group Id");
-        if (sfcEntity.getPortPairGroups() != null) {
-            return sfcEntity.getPortPairGroups().stream().filter(ppg -> portPairGroupId.equals(ppg.getElementId()))
-                            .findFirst().orElse(null);
-        }
-
-        return null;
     }
 
     /**
@@ -247,55 +203,6 @@ public class RedirectionApiUtils {
                                         .findFirst();
         return pcOpt.orElse(null);
     }
-
-    /**
-     * Fetches InspectionPortEntity from openStack, with full dependencies,
-     * including the parent (Port Pair Group) and parent's parent (Service Function Chain.)
-     * <p/>
-     *
-     * Very expensive call: potentially does three list() calls on openstack.
-     *
-     * @param portPair assumed not null
-     * @return InspectionPortEntity
-     */
-    public InspectionPortEntity fetchPortPairEntityWithAllDepends(PortPair portPair) {
-        PortPairGroup portPairGroup = fetchContainingPortPairGroup(portPair.getId());
-        if (portPairGroup != null) {
-            PortChain portChain = fetchContainingPortChain(portPairGroup.getId());
-            PortPairGroupEntity portPairGroupEntity;
-            if (portChain != null) {
-                ServiceFunctionChainEntity serviceFunctionChainEntity =
-                        fetchSFCWithChildDepeds(portChain);
-                portPairGroupEntity =
-                        findPortPairGroupUnderSFCEntity(serviceFunctionChainEntity, portPairGroup.getId());
-            } else {
-                portPairGroupEntity = fetchPortPairGroupWithChildDepends(portPairGroup);
-            }
-            return findPortPairUnderPortPairGroup(portPairGroupEntity, portPair.getId());
-        } else {
-            return fetchPortPairWithChildDepends(portPair);
-        }
-    }
-
-    /**
-     * Expensive call: Searches through the list port chains from openstack.
-     * @param portPairGroup assumed not null
-     * @return PortPairGroupEntity
-     */
-    public PortPairGroupEntity fetchPortPairGroupWithAllDepends(PortPairGroup portPairGroup) {
-       PortChain portChain = fetchContainingPortChain(portPairGroup.getId());
-       PortPairGroupEntity portPairGroupEntity;
-       if (portChain != null) {
-           ServiceFunctionChainEntity serviceFunctionChainEntity =
-                   fetchSFCWithChildDepeds(portChain);
-           portPairGroupEntity =
-                   findPortPairGroupUnderSFCEntity(serviceFunctionChainEntity, portPairGroup.getId());
-       } else {
-           portPairGroupEntity = fetchPortPairGroupWithChildDepends(portPairGroup);
-       }
-
-       return portPairGroupEntity;
-   }
 
     public ServiceFunctionChainEntity fetchSFCWithAllDepends(PortChain portChain) {
         return fetchSFCWithChildDepeds(portChain);
@@ -353,26 +260,6 @@ public class RedirectionApiUtils {
 
         port = port.toBuilder().profile(profile).build();
         this.osCalls.updatePort(port);
-    }
-
-    public NetworkElementEntity fetchNetworkElementFromOS(String portId, String portPairId) {
-        if (portId == null) {
-            return null;
-        }
-
-        Port port = this.osCalls.getPort(portId);
-
-        if (port == null) {
-            LOG.error("Port {} not found on openstack", portId);
-            return null;
-        }
-
-        List<String> ips = emptyList();
-        if (port.getFixedIps() != null) {
-            ips = port.getFixedIps().stream().map(ip -> ip.getIpAddress()).collect(Collectors.toList());
-        }
-
-        return new NetworkElementEntity(port.getId(), ips, singletonList(port.getMacAddress()), portPairId);
     }
 
     public void validatePPGList(List<NetworkElement> portPairGroups) {
