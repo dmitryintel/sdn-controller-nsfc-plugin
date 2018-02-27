@@ -49,7 +49,7 @@ import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
-import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
+import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 import org.osc.sdk.controller.DefaultNetworkPort;
 import org.osc.sdk.controller.element.Element;
 import org.osc.sdk.controller.element.InspectionHookElement;
@@ -299,7 +299,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         this.exception.expectMessage(StringStartsWith.startsWith("Cannot find type Service Function Chain"));
 
         // Act.
-        this.redirApi.installInspectionHook(inspected, new ServiceFunctionChainEntity("foo"), 0L, VLAN, 0L, NA);
+        this.redirApi.installInspectionHook(inspected, new ServiceFunctionChainElement("foo"), 0L, VLAN, 0L, NA);
     }
 
     @Test
@@ -340,7 +340,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistInspectionPort(true, true);
         persistPortPairGroup();
         persistPortChainAndSfcEntity();
-        ServiceFunctionChainEntity sfcOther = sfc; // sfc has been renewed
+        ServiceFunctionChainElement sfcOther = sfc; // sfc has been renewed
 
         InspectionHookEntity inspectionHookAlt = new InspectionHookEntity(inspected, sfcOther);
         inspectionHookAlt.setHookId(hookId);
@@ -786,7 +786,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         inspected = constructNetworkElementEntity(inspectedPort, null);
     }
 
-    private ServiceFunctionChainEntity persistPortChainAndSfcEntity() {
+    private ServiceFunctionChainElement persistPortChainAndSfcEntity() {
 
         portChain = Builders.portChain()
                 .portPairGroups(singletonList(portPairGroup.getId()))
@@ -802,7 +802,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         ppgEntity.getPortPairs().add(inspectionPort);
         ppgEntity.setElementId(portPairGroup.getId());
 
-        sfc = new ServiceFunctionChainEntity(portChain.getId());
+        sfc = new ServiceFunctionChainElement(portChain.getId());
         sfc.getPortPairGroups().add(ppgEntity);
         ppgEntity.setServiceFunctionChain(sfc);
 

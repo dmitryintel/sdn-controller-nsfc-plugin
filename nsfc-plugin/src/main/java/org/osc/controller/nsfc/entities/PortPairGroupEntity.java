@@ -27,7 +27,7 @@ public class PortPairGroupEntity implements NetworkElement {
 
     private List<InspectionPortEntity> portPairs = new ArrayList<>();
 
-    private ServiceFunctionChainEntity serviceFunctionChain;
+    private ServiceFunctionChainElement serviceFunctionChain;
 
     public PortPairGroupEntity() {
     }
@@ -45,11 +45,11 @@ public class PortPairGroupEntity implements NetworkElement {
         this.elementId = elementId;
     }
 
-    public ServiceFunctionChainEntity getServiceFunctionChain() {
+    public ServiceFunctionChainElement getServiceFunctionChain() {
         return this.serviceFunctionChain;
     }
 
-    public void setServiceFunctionChain(ServiceFunctionChainEntity serviceFunctionChain) {
+    public void setServiceFunctionChain(ServiceFunctionChainElement serviceFunctionChain) {
         this.serviceFunctionChain = serviceFunctionChain;
     }
 

@@ -40,7 +40,7 @@ import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
-import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
+import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 import org.osc.controller.nsfc.utils.OsCalls;
 import org.osc.controller.nsfc.utils.RedirectionApiUtils;
 import org.osc.sdk.controller.FailurePolicyType;
@@ -139,6 +139,8 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
                             .description("OSC-registered port pair")
                             .build();
             portPair = this.osCalls.createPortPair(portPair);
+            checkArgument(portPair != null, "Failed to create port pair for ingress %s, egress %s!",
+                          ingress.getElementId(), egress.getElementId());
         }
 
         if (portPairGroup == null) {
@@ -147,15 +149,32 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
                     .build();
             portPairGroup.getPortPairs().add(portPair.getId());
             portPairGroup = this.osCalls.createPortPairGroup(portPairGroup);
-
+            inspectionPortPairGroupId = portPairGroup.getId();
         } else {
-            portPairGroup.getPortPairs().add(portPair.getId());
+
+            if (!portPairGroup.getPortPairs().contains(portPair.getId())) {
+                portPairGroup.getPortPairs().add(portPair.getId());
+            }
+
             this.osCalls.updatePortPairGroup(portPairGroup.getId(), portPairGroup);
         }
 
+        NetworkElementEntity ingressEntity = null;
+        NetworkElementEntity egressEntity = null;
+
+        if (ingress != null) {
+            ingressEntity = new NetworkElementEntity(ingress.getElementId(), ingress.getMacAddresses(),
+                                                     ingress.getPortIPs(), ingress.getParentId());
+        }
+
+        if (egress != null) {
+            egressEntity = new NetworkElementEntity(egress.getElementId(), egress.getMacAddresses(),
+                    egress.getPortIPs(), egress.getParentId());
+        }
+
         // Only parent id of the return value is ever used
-        PortPairGroupEntity ppgEntity = new PortPairGroupEntity(portPairGroup.getId());
-        InspectionPortEntity retVal = new InspectionPortEntity(portPair.getId(), ppgEntity, null, null);
+        PortPairGroupEntity ppgEntity = new PortPairGroupEntity(inspectionPortPairGroupId);
+        InspectionPortEntity retVal = new InspectionPortEntity(portPair.getId(), ppgEntity, ingressEntity, egressEntity);
         ppgEntity.getPortPairs().add(retVal);
         return retVal;
     }
@@ -230,7 +249,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             throw new IllegalStateException(msg);
         }
 
-        ServiceFunctionChainEntity sfcEntity = this.utils.fetchSFCWithChildDepends(portChain);
+        ServiceFunctionChainElement sfcEntity = this.utils.fetchSFCWithChildDepends(portChain);
 
         String inspectedIp = inspectedPortElement.getPortIPs().get(0);
         flowClassifier = this.utils.buildFlowClassifier(inspectedIp, sfcEntity);
@@ -333,21 +352,19 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         FlowClassifier flowClassifier = this.osCalls.getFlowClassifier(inspectionHookId);
 
         if (flowClassifier == null) {
-            LOG.warn("No inspection hook for id %s", inspectionHookId);
+            LOG.warn("No flow classifier for id %s", inspectionHookId);
             return null;
         }
 
         InspectionHookEntity retVal = new InspectionHookEntity(null, null);
         retVal.setHookId(inspectionHookId);
+        PortChain portChain = this.utils.fetchContainingPortChainForFC(inspectionHookId);
 
-        if (retVal != null) {
-            PortChain portChain = this.utils.fetchContainingPortChainForFC(inspectionHookId);
-            // only inspectionPort part of the returned object is ever used, which is SFC
-            if (portChain != null) {
-                ServiceFunctionChainEntity sfcEntity = new ServiceFunctionChainEntity(portChain.getId());
-                retVal.setServiceFunctionChain(sfcEntity);
-                sfcEntity.getInspectionHooks().add(retVal);
-            }
+        // only inspectionPort part of the returned object is ever used, which is SFC
+        if (portChain != null) {
+            ServiceFunctionChainElement sfcEntity = new ServiceFunctionChainElement(portChain.getId());
+            retVal.setServiceFunctionChain(sfcEntity);
+            sfcEntity.getInspectionHooks().add(retVal);
         }
 
         return retVal;
@@ -377,7 +394,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
         List<PortPairGroupEntity> portPairGroups =
                 portPairGroupList.stream().map(p -> new PortPairGroupEntity(p.getElementId())).collect(toList());
 
-        ServiceFunctionChainEntity retVal = new ServiceFunctionChainEntity(portChainCreated.getId());
+        ServiceFunctionChainElement retVal = new ServiceFunctionChainElement(portChainCreated.getId());
         portPairGroups.stream().forEach(p -> p.setServiceFunctionChain(retVal));
         retVal.setPortPairGroups(portPairGroups);
 
@@ -410,7 +427,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         List<PortPairGroupEntity> portPairGroups =
                 portPairGroupIds.stream().map(id -> new PortPairGroupEntity(id)).collect(toList());
-        ServiceFunctionChainEntity retVal = new ServiceFunctionChainEntity(portChainUpdated.getId());
+        ServiceFunctionChainElement retVal = new ServiceFunctionChainElement(portChainUpdated.getId());
         portPairGroups.stream().forEach(p -> p.setServiceFunctionChain(retVal));
         retVal.setPortPairGroups(portPairGroups);
         return retVal;

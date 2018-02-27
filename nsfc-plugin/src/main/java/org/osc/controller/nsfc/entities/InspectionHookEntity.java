@@ -27,12 +27,12 @@ public class InspectionHookEntity implements InspectionHookElement {
 
     private NetworkElementEntity inspectedPort;
 
-    private ServiceFunctionChainEntity serviceFunctionChain;
+    private ServiceFunctionChainElement serviceFunctionChain;
 
     InspectionHookEntity() {
     }
 
-    public InspectionHookEntity(NetworkElementEntity inspectedPort, ServiceFunctionChainEntity serviceFunctionChain) {
+    public InspectionHookEntity(NetworkElementEntity inspectedPort, ServiceFunctionChainElement serviceFunctionChain) {
         this.inspectedPort = inspectedPort;
         this.serviceFunctionChain = serviceFunctionChain;
     }
@@ -51,11 +51,11 @@ public class InspectionHookEntity implements InspectionHookElement {
         return this.inspectedPort;
     }
 
-    public ServiceFunctionChainEntity getServiceFunctionChain() {
+    public ServiceFunctionChainElement getServiceFunctionChain() {
         return this.serviceFunctionChain;
     }
 
-    public void setServiceFunctionChain(ServiceFunctionChainEntity serviceFunctionChain) {
+    public void setServiceFunctionChain(ServiceFunctionChainElement serviceFunctionChain) {
         this.serviceFunctionChain = serviceFunctionChain;
     }
 

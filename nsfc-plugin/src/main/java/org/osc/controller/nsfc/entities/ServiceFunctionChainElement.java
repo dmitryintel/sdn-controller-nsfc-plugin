@@ -24,7 +24,7 @@ import java.util.Set;
 import org.osc.sdk.controller.element.InspectionPortElement;
 import org.osc.sdk.controller.element.NetworkElement;
 
-public class ServiceFunctionChainEntity implements NetworkElement, InspectionPortElement {
+public class ServiceFunctionChainElement implements NetworkElement, InspectionPortElement {
 
     private String elementId;
 
@@ -32,10 +32,10 @@ public class ServiceFunctionChainEntity implements NetworkElement, InspectionPor
 
     private Set<InspectionHookEntity> inspectionHooks = new HashSet<>();
 
-    public ServiceFunctionChainEntity() {
+    public ServiceFunctionChainElement() {
     }
 
-    public ServiceFunctionChainEntity(String elementId) {
+    public ServiceFunctionChainElement(String elementId) {
         super();
         this.elementId = elementId;
     }

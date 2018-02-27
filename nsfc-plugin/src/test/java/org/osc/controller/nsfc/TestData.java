@@ -42,7 +42,7 @@ import org.osc.controller.nsfc.entities.InspectionHookEntity;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
-import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
+import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 
 class TestData {
 
@@ -65,7 +65,7 @@ class TestData {
     public static InspectionHookEntity inspectionHook;
     public static InspectionPortEntity inspectionPort;
     public static PortPairGroupEntity ppgEntity;
-    public static ServiceFunctionChainEntity sfc;
+    public static ServiceFunctionChainElement sfc;
 
     public static NetworkElementEntity ingressPortEntity;
     public static NetworkElementEntity egressPortEntity;
@@ -106,7 +106,7 @@ class TestData {
         inspectionPort.setIngressPort(ingressPortEntity);
         inspectionPort.setEgressPort(egressPortEntity);
 
-        sfc = new ServiceFunctionChainEntity();
+        sfc = new ServiceFunctionChainElement();
 
         inspectionHook = new InspectionHookEntity(inspected, sfc);
 

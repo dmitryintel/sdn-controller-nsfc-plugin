@@ -41,7 +41,7 @@ import org.openstack4j.model.network.options.PortListOptions;
 import org.osc.controller.nsfc.entities.InspectionPortEntity;
 import org.osc.controller.nsfc.entities.NetworkElementEntity;
 import org.osc.controller.nsfc.entities.PortPairGroupEntity;
-import org.osc.controller.nsfc.entities.ServiceFunctionChainEntity;
+import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 import org.osc.sdk.controller.element.NetworkElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,9 +115,9 @@ public class RedirectionApiUtils {
         return retVal;
     }
 
-    public ServiceFunctionChainEntity fetchSFCWithChildDepends(PortChain portChain) {
+    public ServiceFunctionChainElement fetchSFCWithChildDepends(PortChain portChain) {
 
-        ServiceFunctionChainEntity retVal =  new ServiceFunctionChainEntity(portChain.getId());
+        ServiceFunctionChainElement retVal =  new ServiceFunctionChainElement(portChain.getId());
 
         if (portChain.getPortPairGroups() != null) {
             Set<? extends PortPairGroup> portPairGroups = new HashSet<>(this.osCalls.listPortPairGroups());
@@ -171,12 +171,11 @@ public class RedirectionApiUtils {
 
         List<? extends PortPair> portPairs = this.osCalls.listPortPairs();
 
-        Optional<? extends PortPair> portPairOpt = portPairs.stream()
-                            .filter(pp -> Objects.equals(ingressId, pp.getIngressId())
-                                                && Objects.equals(egressId, pp.getEgressId()))
-                            .findFirst();
-
-        return portPairOpt.orElse(null);
+        return portPairs.stream()
+                        .filter(pp -> Objects.equals(ingressId, pp.getIngressId())
+                                            && Objects.equals(egressId, pp.getEgressId()))
+                        .findFirst()
+                        .orElse(null);
     }
 
     public PortPairGroup fetchContainingPortPairGroup(String portPairId) {
@@ -280,7 +279,7 @@ public class RedirectionApiUtils {
         }
     }
 
-    public FlowClassifier buildFlowClassifier(String inspectedPortIp, ServiceFunctionChainEntity sfcEntity) {
+    public FlowClassifier buildFlowClassifier(String inspectedPortIp, ServiceFunctionChainElement sfcEntity) {
         FlowClassifier flowClassifier;
         String sourcePortId = sfcEntity.getPortPairGroups().get(0).getPortPairs().get(0).getIngressPort().getElementId();
         int nGroups = sfcEntity.getPortPairGroups().size();
