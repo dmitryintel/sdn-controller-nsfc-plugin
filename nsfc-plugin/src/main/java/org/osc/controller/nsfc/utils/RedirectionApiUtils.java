@@ -115,7 +115,7 @@ public class RedirectionApiUtils {
         return retVal;
     }
 
-    private ServiceFunctionChainEntity fetchSFCWithChildDepeds(PortChain portChain) {
+    public ServiceFunctionChainEntity fetchSFCWithChildDepends(PortChain portChain) {
 
         ServiceFunctionChainEntity retVal =  new ServiceFunctionChainEntity(portChain.getId());
 
@@ -202,10 +202,6 @@ public class RedirectionApiUtils {
                                                           && pc.getFlowClassifiers().contains(flowClassifierId))
                                         .findFirst();
         return pcOpt.orElse(null);
-    }
-
-    public ServiceFunctionChainEntity fetchSFCWithAllDepends(PortChain portChain) {
-        return fetchSFCWithChildDepeds(portChain);
     }
 
     /**
