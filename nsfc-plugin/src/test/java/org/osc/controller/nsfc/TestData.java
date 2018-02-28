@@ -39,8 +39,8 @@ import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.openstack4j.model.network.options.PortListOptions;
 import org.osc.controller.nsfc.entities.FlowClassifierElement;
-import org.osc.controller.nsfc.entities.PortPairElement;
 import org.osc.controller.nsfc.entities.NetworkElementImpl;
+import org.osc.controller.nsfc.entities.PortPairElement;
 import org.osc.controller.nsfc.entities.PortPairGroupElement;
 import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 
@@ -108,7 +108,7 @@ class TestData {
 
         sfc = new ServiceFunctionChainElement();
 
-        inspectionHook = new FlowClassifierElement(inspected, sfc);
+        inspectionHook = new FlowClassifierElement(null, inspected, sfc);
 
         portChain = Builders.portChain().build();
         portPair = Builders.portPair().build();

@@ -303,25 +303,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     }
 
     @Test
-    public void testApi_InstallInspectionHook_WithExistingHook_VerifyFails() throws Exception {
-        // Arrange.
-        persistInspectedPort();
-        persistIngress();
-        persistEgress();
-        persistInspectionPort(true, true);
-        persistPortPairGroup();
-        persistPortChainAndSfcElement();
-
-        this.exception.expect(IllegalStateException.class);
-        this.exception.expectMessage(StringStartsWith.startsWith("Found existing Flow Classifier"));
-
-        this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
-
-        // Act.
-        this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
-    }
-
-    @Test
     public void testApi_UpdateInspectionHook_WithExistingHook_VerifySucceeds() throws Exception {
         // Arrange.
         persistInspectedPort();
@@ -342,8 +323,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistPortChainAndSfcElement();
         ServiceFunctionChainElement sfcOther = sfc; // sfc has been renewed
 
-        FlowClassifierElement inspectionHookAlt = new FlowClassifierElement(inspected, sfcOther);
-        inspectionHookAlt.setHookId(hookId);
+        FlowClassifierElement inspectionHookAlt = new FlowClassifierElement(hookId, inspected, sfcOther);
 
         // Act.
         this.redirApi.updateInspectionHook(inspectionHookAlt);
@@ -359,8 +339,8 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         // Arrange.
         persistPortChainAndSfcElement();
 
-        FlowClassifierElement updatedHook = new FlowClassifierElement(inspected, sfc);
-        updatedHook.setHookId("non-existing-id");
+        FlowClassifierElement updatedHook = new FlowClassifierElement("non-existing-id", inspected, sfc);
+
 
         this.exception.expect(IllegalArgumentException.class);
         this.exception.expectMessage(StringStartsWith.startsWith("Cannot find Flow Classifier"));
@@ -378,9 +358,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistInspectionPort(true, true);
         persistPortPairGroup();
         persistPortChainAndSfcElement();
-
-        portChain = Builders.portChain().portPairGroups(singletonList(ppgElement.getElementId())).build();
-        portChain = this.osClient.sfc().portchains().create(portChain);
 
         String hookId = this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
         assertNotNull(this.redirApi.getInspectionHook(hookId));
@@ -409,62 +386,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
 
         this.exception.expect(IllegalArgumentException.class);
         this.exception.expectMessage(String.format("null passed for %s !", "Port Pair Group member list"));
-
-        // Act
-        this.redirApi.registerNetworkElement(neList);
-    }
-
-    @Test
-    public void testApi_RegisterNetworkElementWithPpgIdNull_ThrowsIllegalArgumentException() throws Exception {
-        // Arrange
-
-        List<NetworkElement> neList = new ArrayList<NetworkElement>();
-        DefaultNetworkPort ne = new DefaultNetworkPort();
-        neList.add(ne);
-
-        this.exception.expect(IllegalArgumentException.class);
-        this.exception.expectMessage(String.format("null passed for %s !",  "Port Pair Group Id"));
-
-        // Act
-        this.redirApi.registerNetworkElement(neList);
-    }
-
-    @Test
-    public void testApi_RegisterNetworkElementWithInvalidPpgId_ThrowsIllegalArgumentException() throws Exception {
-        // Arrange
-
-        List<NetworkElement> neList = new ArrayList<NetworkElement>();
-        DefaultNetworkPort ne = new DefaultNetworkPort();
-        ne.setElementId("badId");
-        neList.add(ne);
-
-        this.exception.expect(IllegalArgumentException.class);
-        this.exception.expectMessage(String.format("Cannot find %s by id: %s!", "Port Pair Group", ne.getElementId()));
-
-        // Act
-        this.redirApi.registerNetworkElement(neList);
-    }
-
-    @Test
-    public void testApi_RegisterNetworkElementWithPpgIdIsChainedToAnotherSfc_ThrowsIllegalArgumentException()
-            throws Exception {
-        // Arrange
-        persistIngress();
-        persistEgress();
-        persistInspectionPort(true, true);
-        persistPortPairGroup();
-        persistPortChainAndSfcElement();
-
-//        persistInspectionPortAndSfc();
-        List<NetworkElement> neList = new ArrayList<NetworkElement>();
-        DefaultNetworkPort ne = new DefaultNetworkPort();
-        ne.setElementId(portPairGroup.getId());
-        neList.add(ne);
-
-        this.exception.expect(IllegalArgumentException.class);
-        this.exception
-                .expectMessage(String.format(String.format("Port Pair Group Id %s is already chained to SFC Id : %s ",
-                        ne.getElementId(), portChain.getId())));
 
         // Act
         this.redirApi.registerNetworkElement(neList);
@@ -589,28 +510,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         this.redirApi.updateNetworkElement(sfcPort, neList);
     }
 
-    @Test
-    public void testApi_UpdateNetworkElementWhenPpgIdInUpdatedListIsNotFound_ThrowsIllegalArgumentException()
-            throws Exception {
-        // Arrange
-        persistPortChainAndSfcElement();
-
-        List<NetworkElement> neList = new ArrayList<NetworkElement>();
-        DefaultNetworkPort sfcTest = new DefaultNetworkPort();
-        DefaultNetworkPort ne = new DefaultNetworkPort();
-
-        sfcTest.setElementId(portChain.getId());
-
-        ne.setElementId("BadPpgId");
-        ne.setParentId(portChain.getId());
-        neList.add(ne);
-
-        this.exception.expect(IllegalArgumentException.class);
-        this.exception.expectMessage(String.format("Cannot find %s by id: %s!", "Port Pair Group", ne.getElementId()));
-
-        // Act
-        this.redirApi.updateNetworkElement(sfcTest, neList);
-    }
 
     @Test
     public void testApi_UpdateNetworkElementWhenPpgIdIsChainedToSameSfc_VerifySuccessful()

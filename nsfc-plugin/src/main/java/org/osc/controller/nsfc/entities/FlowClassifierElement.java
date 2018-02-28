@@ -32,7 +32,12 @@ public class FlowClassifierElement implements InspectionHookElement {
     FlowClassifierElement() {
     }
 
-    public FlowClassifierElement(NetworkElementImpl inspectedPort, ServiceFunctionChainElement serviceFunctionChain) {
+    public FlowClassifierElement(String hookId) {
+        this.hookId = hookId;
+    }
+
+    public FlowClassifierElement(String hookId, NetworkElementImpl inspectedPort, ServiceFunctionChainElement serviceFunctionChain) {
+        this.hookId = hookId;
         this.inspectedPort = inspectedPort;
         this.serviceFunctionChain = serviceFunctionChain;
     }

@@ -105,11 +105,10 @@ public class RedirectionApiUtils {
                     retVal.getPortPairs().add(portPairElement);
                     portPairElement.setPortPairGroup(retVal);
                 } catch (IllegalArgumentException e) {
-                    LOG.error("Port Pair {}  listed for port pair group {} does not exist!", portPair.getId(),
+                    LOG.error("Port Pair {} listed for port pair group {} does not exist!", portPair.getId(),
                               portPairGroup.getId());
                 }
             }
-
         }
 
         return retVal;
@@ -255,28 +254,6 @@ public class RedirectionApiUtils {
 
         port = port.toBuilder().profile(profile).build();
         this.osCalls.updatePort(port);
-    }
-
-    public void validatePPGList(List<NetworkElement> portPairGroups) {
-        List<? extends PortChain> portChains = this.osCalls.listPortChains();
-        for (NetworkElement ne : portPairGroups) {
-            checkArgument(ne != null && ne.getElementId() != null,
-                         "null passed for %s !", "Port Pair Group Id");
-
-            PortPairGroup portPairGroup = this.osCalls.getPortPairGroup(ne.getElementId());
-
-            checkArgument(portPairGroup != null && portPairGroup.getId() != null,
-                          "Cannot find %s by id: %s!", "Port Pair Group", ne.getElementId());
-
-            Optional<? extends PortChain> pcMaybe = portChains.stream()
-                                                    .filter(pc -> pc.getPortPairGroups().contains(portPairGroup.getId()))
-                                                    .findFirst();
-            if (pcMaybe.isPresent()) {
-                throw new IllegalArgumentException(
-                        String.format("Port Pair Group Id %s is already chained to SFC Id : %s ", ne.getElementId(),
-                                pcMaybe.get().getId()));
-            }
-        }
     }
 
     public FlowClassifier buildFlowClassifier(String inspectedPortIp, ServiceFunctionChainElement sfcElement) {
