@@ -20,7 +20,7 @@ import java.util.List;
 
 import org.osc.sdk.controller.element.NetworkElement;
 
-public class NetworkElementEntity implements NetworkElement {
+public class NetworkElementImpl implements NetworkElement {
 
     private String elementId;
 
@@ -31,18 +31,18 @@ public class NetworkElementEntity implements NetworkElement {
 
     private List<String> portIPs;
 
-    private InspectionHookEntity inspectionHook;
+    private FlowClassifierElement inspectionHook;
 
-    public NetworkElementEntity() {
+    public NetworkElementImpl() {
     }
 
-    public NetworkElementEntity(String elementId, List<String> macAddressEntities, List<String> portIpEntities,
+    public NetworkElementImpl(String elementId, List<String> macAddresses, List<String> portIps,
             String parentId) {
         super();
         this.elementId = elementId;
         this.parentId = parentId;
-        this.macAddresses = macAddressEntities;
-        this.portIPs = portIpEntities;
+        this.macAddresses = macAddresses;
+        this.portIPs = portIps;
     }
 
     @Override
@@ -79,7 +79,7 @@ public class NetworkElementEntity implements NetworkElement {
 
     @Override
     public String toString() {
-        return "NetworkElementEntity [elementId=" + this.elementId + ", parentId=" + this.parentId + ", macAddresses="
+        return "NetworkElementImpl [elementId=" + this.elementId + ", parentId=" + this.parentId + ", macAddresses="
                 + this.macAddresses + ", portIPs=" + this.portIPs + "]";
     }
 }

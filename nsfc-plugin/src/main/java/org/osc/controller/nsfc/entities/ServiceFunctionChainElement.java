@@ -28,9 +28,9 @@ public class ServiceFunctionChainElement implements NetworkElement, InspectionPo
 
     private String elementId;
 
-    private List<PortPairGroupEntity> portPairGroups = new ArrayList<>();
+    private List<PortPairGroupElement> portPairGroups = new ArrayList<>();
 
-    private Set<InspectionHookEntity> inspectionHooks = new HashSet<>();
+    private Set<FlowClassifierElement> inspectionHooks = new HashSet<>();
 
     public ServiceFunctionChainElement() {
     }
@@ -45,21 +45,21 @@ public class ServiceFunctionChainElement implements NetworkElement, InspectionPo
         return this.elementId;
     }
 
-    public List<PortPairGroupEntity> getPortPairGroups() {
+    public List<PortPairGroupElement> getPortPairGroups() {
         return this.portPairGroups;
     }
 
-    public void setPortPairGroups(List<PortPairGroupEntity> portPairGroups) {
+    public void setPortPairGroups(List<PortPairGroupElement> portPairGroups) {
         this.portPairGroups = portPairGroups;
     }
 
-    public Set<InspectionHookEntity> getInspectionHooks() {
+    public Set<FlowClassifierElement> getInspectionHooks() {
         return this.inspectionHooks;
     }
 
     @Override
     public String toString() {
-        return "ServiceFunctionChainEntity [elementId=" + this.elementId + ", portPairGroups=" + this.portPairGroups + "]";
+        return "ServiceFunctionChainElement [elementId=" + this.elementId + ", portPairGroups=" + this.portPairGroups + "]";
     }
 
     @Override

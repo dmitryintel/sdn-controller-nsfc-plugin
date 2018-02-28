@@ -45,10 +45,10 @@ import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi;
-import org.osc.controller.nsfc.entities.InspectionHookEntity;
-import org.osc.controller.nsfc.entities.InspectionPortEntity;
-import org.osc.controller.nsfc.entities.NetworkElementEntity;
-import org.osc.controller.nsfc.entities.PortPairGroupEntity;
+import org.osc.controller.nsfc.entities.FlowClassifierElement;
+import org.osc.controller.nsfc.entities.NetworkElementImpl;
+import org.osc.controller.nsfc.entities.PortPairElement;
+import org.osc.controller.nsfc.entities.PortPairGroupElement;
 import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 import org.osc.sdk.controller.DefaultNetworkPort;
 import org.osc.sdk.controller.element.Element;
@@ -78,7 +78,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistIngress();
         persistEgress();
 
-        InspectionPortElement inspectionPortElement = new InspectionPortEntity(null, null, ingressPortEntity, egressPortEntity);
+        InspectionPortElement inspectionPortElement = new PortPairElement(null, null, ingressPortElement, egressPortElement);
 
         // Act.
         inspectionPortElement = (InspectionPortElement) this.redirApi.registerInspectionPort(inspectionPortElement);
@@ -100,7 +100,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
 
-        InspectionPortElement inspectionPortElement = new InspectionPortEntity(portPair.getId(), null, ingressPortEntity, egressPortEntity);
+        InspectionPortElement inspectionPortElement = new PortPairElement(portPair.getId(), null, ingressPortElement, egressPortElement);
 
         // Act.
         inspectionPortElement = (InspectionPortElement) this.redirApi.registerInspectionPort(inspectionPortElement);
@@ -120,17 +120,17 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistIngress();
         persistEgress();
 
-        InspectionPortElement inspectionPortElement = new InspectionPortEntity(null, null, ingressPortEntity, egressPortEntity);
+        InspectionPortElement inspectionPortElement = new PortPairElement(null, null, ingressPortElement, egressPortElement);
         Element result = this.redirApi.registerInspectionPort(inspectionPortElement);
 
         assertNotNull(result.getParentId());
         String portPairGroupId = result.getParentId();
 
-        ppgEntity = new PortPairGroupEntity(portPairGroupId);
+        ppgElement = new PortPairGroupElement(portPairGroupId);
 
-        InspectionPortElement inspectionPortElement2 = new InspectionPortEntity(null, ppgEntity,
-                new NetworkElementEntity("IngressFoo", asList("IngressMac"), asList("IngressIP"), null),
-                new NetworkElementEntity("EgressFoo", asList("EgressMac"), asList("EgressIP"), null));
+        InspectionPortElement inspectionPortElement2 = new PortPairElement(null, ppgElement,
+                new NetworkElementImpl("IngressFoo", asList("IngressMac"), asList("IngressIP"), null),
+                new NetworkElementImpl("EgressFoo", asList("EgressMac"), asList("EgressIP"), null));
 
         // Act.
         Element result2 = this.redirApi.registerInspectionPort(inspectionPortElement2);
@@ -154,11 +154,11 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistPortPairGroup();
         this.exception.expect(IllegalArgumentException.class);
 
-        ppgEntity = new PortPairGroupEntity();
-        ppgEntity.setElementId("fooportgroup");
+        ppgElement = new PortPairGroupElement();
+        ppgElement.setElementId("fooportgroup");
 
-        InspectionPortElement inspectionPortElement = new InspectionPortEntity(null, ppgEntity, ingressPortEntity,
-                egressPortEntity);
+        InspectionPortElement inspectionPortElement = new PortPairElement(null, ppgElement, ingressPortElement,
+                egressPortElement);
 
         // Act.
         this.redirApi.registerInspectionPort(inspectionPortElement);
@@ -173,12 +173,12 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         // port pair group should be created on its own!
         assertEquals(0, this.osClient.sfc().portpairgroups().list().size());
 
-        InspectionPortEntity inspectionPortElement = new InspectionPortEntity(null, null, ingressPortEntity, egressPortEntity);
+        PortPairElement inspectionPortElement = new PortPairElement(null, null, ingressPortElement, egressPortElement);
 
         Element registeredElement = this.redirApi.registerInspectionPort(inspectionPortElement);
 
-        assertTrue(registeredElement instanceof InspectionPortEntity);
-        inspectionPortElement = (InspectionPortEntity) registeredElement;
+        assertTrue(registeredElement instanceof PortPairElement);
+        inspectionPortElement = (PortPairElement) registeredElement;
 
         portPair = this.osClient.sfc().portpairs().get(inspectionPortElement.getElementId());
         assertNotNull(portPair);
@@ -189,7 +189,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertEquals(portPairGroup.getId(), registeredElement.getParentId());
 
         InspectionPortElement foundInspectionPort =
-                this.redirApi.getInspectionPort(new InspectionPortEntity(portPair.getId(), null, ingressPortEntity, egressPortEntity));
+                this.redirApi.getInspectionPort(new PortPairElement(portPair.getId(), null, ingressPortElement, egressPortElement));
 
         assertEquals(inspectionPortElement.getElementId(), portPair.getId());
 
@@ -212,11 +212,11 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         // port pair group should be created on its own!
         assertEquals(0, this.osClient.sfc().portpairgroups().list().size());
 
-        InspectionPortEntity inspectionPortElement = new InspectionPortEntity(null, null, ingressPortEntity, egressPortEntity);
+        PortPairElement inspectionPortElement = new PortPairElement(null, null, ingressPortElement, egressPortElement);
         Element registeredElement = this.redirApi.registerInspectionPort(inspectionPortElement);
 
-        assertTrue(registeredElement instanceof InspectionPortEntity);
-        inspectionPortElement = (InspectionPortEntity) registeredElement;
+        assertTrue(registeredElement instanceof PortPairElement);
+        inspectionPortElement = (PortPairElement) registeredElement;
 
         portPair = this.osClient.sfc().portpairs().get(inspectionPortElement.getElementId());
         assertNotNull(portPair);
@@ -227,14 +227,14 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertEquals(1, portPairGroup.getPortPairs().size());
         assertTrue(portPairGroup.getPortPairs().contains(portPair.getId()));
 
-        ppgEntity = new PortPairGroupEntity(portPairGroup.getId());
-        InspectionPortElement inspectionPortElement2 = new InspectionPortEntity(null,
-                ppgEntity,
-                new NetworkElementEntity("IngressFoo", asList("IngressMac"), asList("IngressIP"), null),
-                new NetworkElementEntity("EgressFoo", asList("EgressMac"), asList("EgressIP"), null));
+        ppgElement = new PortPairGroupElement(portPairGroup.getId());
+        InspectionPortElement inspectionPortElement2 = new PortPairElement(null,
+                ppgElement,
+                new NetworkElementImpl("IngressFoo", asList("IngressMac"), asList("IngressIP"), null),
+                new NetworkElementImpl("EgressFoo", asList("EgressMac"), asList("EgressIP"), null));
 
         Element registeredElement2 = this.redirApi.registerInspectionPort(inspectionPortElement2);
-        inspectionPortElement2 = (InspectionPortEntity) registeredElement2;
+        inspectionPortElement2 = (PortPairElement) registeredElement2;
 
         portPairGroup = this.osClient.sfc().portpairgroups().get(portPairGroup.getId());
         assertNotNull(portPairGroup);
@@ -265,7 +265,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         // Act.
         final String hookId = this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
@@ -277,8 +277,8 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertNotNull(flowClassifier);
 
         InspectionHookElement inspectionHookElement = this.redirApi.getInspectionHook(hookId);
-        assertTrue(inspectionHookElement instanceof InspectionHookEntity);
-        inspectionHook= (InspectionHookEntity) inspectionHookElement;
+        assertTrue(inspectionHookElement instanceof FlowClassifierElement);
+        inspectionHook= (FlowClassifierElement) inspectionHookElement;
         assertNotNull(inspectionHook);
         assertEquals(hookId, inspectionHook.getHookId());
         assertNotNull(inspectionHook.getServiceFunctionChain());
@@ -310,10 +310,10 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         this.exception.expect(IllegalStateException.class);
-        this.exception.expectMessage(StringStartsWith.startsWith("Found existing inspection hook"));
+        this.exception.expectMessage(StringStartsWith.startsWith("Found existing Flow Classifier"));
 
         this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
 
@@ -330,7 +330,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         String hookId = this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
         assertNotNull(hookId);
@@ -339,10 +339,10 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
         ServiceFunctionChainElement sfcOther = sfc; // sfc has been renewed
 
-        InspectionHookEntity inspectionHookAlt = new InspectionHookEntity(inspected, sfcOther);
+        FlowClassifierElement inspectionHookAlt = new FlowClassifierElement(inspected, sfcOther);
         inspectionHookAlt.setHookId(hookId);
 
         // Act.
@@ -357,13 +357,13 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     @Test
     public void testApi_UpdateInspectionHook_WithMissingHook_VerifyFailure() throws Exception {
         // Arrange.
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
-        InspectionHookEntity updatedHook = new InspectionHookEntity(inspected, sfc);
+        FlowClassifierElement updatedHook = new FlowClassifierElement(inspected, sfc);
         updatedHook.setHookId("non-existing-id");
 
         this.exception.expect(IllegalArgumentException.class);
-        this.exception.expectMessage(StringStartsWith.startsWith("Cannot find Inspection Hook"));
+        this.exception.expectMessage(StringStartsWith.startsWith("Cannot find Flow Classifier"));
 
         // Act
         this.redirApi.updateInspectionHook(updatedHook);
@@ -377,9 +377,9 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
-        portChain = Builders.portChain().portPairGroups(singletonList(ppgEntity.getElementId())).build();
+        portChain = Builders.portChain().portPairGroups(singletonList(ppgElement.getElementId())).build();
         portChain = this.osClient.sfc().portchains().create(portChain);
 
         String hookId = this.redirApi.installInspectionHook(inspected, sfc, 0L, VLAN, 0L, NA);
@@ -453,7 +453,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
 //        persistInspectionPortAndSfc();
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
@@ -479,7 +479,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistPortPairGroup();
 
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
-        PortPairGroupEntity ne = new PortPairGroupEntity(portPairGroup.getId());
+        PortPairGroupElement ne = new PortPairGroupElement(portPairGroup.getId());
         neList.add(ne);
 
         // Act
@@ -558,7 +558,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     @Test
     public void testApi_UpdateNetworkElementWhenPpgIdIsNullInUpdatedList_ThrowsIllegalArgumentException() throws Exception {
         // Arrange
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
         DefaultNetworkPort sfcPort = new DefaultNetworkPort();
@@ -593,7 +593,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     public void testApi_UpdateNetworkElementWhenPpgIdInUpdatedListIsNotFound_ThrowsIllegalArgumentException()
             throws Exception {
         // Arrange
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
         DefaultNetworkPort sfcTest = new DefaultNetworkPort();
@@ -620,7 +620,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         List<NetworkElement> neList = new ArrayList<NetworkElement>();
         DefaultNetworkPort ne = new DefaultNetworkPort();
@@ -697,7 +697,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
     @Test
     public void testApi_DeleteNetworkElement_VerifySuccessful() throws Exception {
         // Arrange
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
         String localSfcId = portChain.getId();
 
         DefaultNetworkPort ne = new DefaultNetworkPort();
@@ -753,7 +753,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistEgress();
         persistInspectionPort(true, true);
         persistPortPairGroup();
-        persistPortChainAndSfcEntity();
+        persistPortChainAndSfcElement();
 
         DefaultNetworkPort ne = new DefaultNetworkPort();
 
@@ -783,10 +783,10 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         Port inspectedPort = portService.create(Builders.port().macAddress(inspected.getMacAddresses().get(0))
                 .fixedIp(inspected.getPortIPs().get(0), "mySubnet").build());
 
-        inspected = constructNetworkElementEntity(inspectedPort, null);
+        inspected = constructNetworkElementElement(inspectedPort, null);
     }
 
-    private ServiceFunctionChainElement persistPortChainAndSfcEntity() {
+    private ServiceFunctionChainElement persistPortChainAndSfcElement() {
 
         portChain = Builders.portChain()
                 .portPairGroups(singletonList(portPairGroup.getId()))
@@ -795,27 +795,27 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
 
         portChain = portChainService.create(portChain);
 
-        ingressPortEntity = constructNetworkElementEntity(ingressPort, portPair.getId());
-        egressPortEntity = constructNetworkElementEntity(egressPort, portPair.getId());
-        inspectionPort.setIngressPort(ingressPortEntity);
-        inspectionPort.setEgressPort(egressPortEntity);
-        ppgEntity.getPortPairs().add(inspectionPort);
-        ppgEntity.setElementId(portPairGroup.getId());
+        ingressPortElement = constructNetworkElementElement(ingressPort, portPair.getId());
+        egressPortElement = constructNetworkElementElement(egressPort, portPair.getId());
+        inspectionPort.setIngressPort(ingressPortElement);
+        inspectionPort.setEgressPort(egressPortElement);
+        ppgElement.getPortPairs().add(inspectionPort);
+        ppgElement.setElementId(portPairGroup.getId());
 
         sfc = new ServiceFunctionChainElement(portChain.getId());
-        sfc.getPortPairGroups().add(ppgEntity);
-        ppgEntity.setServiceFunctionChain(sfc);
+        sfc.getPortPairGroups().add(ppgElement);
+        ppgElement.setServiceFunctionChain(sfc);
 
         return sfc;
     }
 
-    private NetworkElementEntity constructNetworkElementEntity(Port port, String parentId) {
+    private NetworkElementImpl constructNetworkElementElement(Port port, String parentId) {
         List<String> ips;
         if (port.getFixedIps() != null) {
             ips = port.getFixedIps().stream().map(ip -> ip.getIpAddress()).collect(Collectors.toList());
         } else {
             ips = new ArrayList<>();
         }
-        return new NetworkElementEntity(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
+        return new NetworkElementImpl(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
     }
 }

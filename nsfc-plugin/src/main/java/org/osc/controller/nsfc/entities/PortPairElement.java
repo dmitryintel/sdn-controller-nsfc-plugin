@@ -21,21 +21,21 @@ import org.osc.sdk.controller.element.InspectionPortElement;
 /**
  * Translates to a port pair in SFC
  */
-public class InspectionPortEntity implements InspectionPortElement {
+public class PortPairElement implements InspectionPortElement {
 
     //Port pair id
     private String elementId;
 
-    private PortPairGroupEntity portPairGroup;
+    private PortPairGroupElement portPairGroup;
 
-    private NetworkElementEntity ingressPort;
+    private NetworkElementImpl ingressPort;
 
-    private NetworkElementEntity egressPort;
+    private NetworkElementImpl egressPort;
 
-    public InspectionPortEntity() {
+    public PortPairElement() {
     }
 
-    public InspectionPortEntity(String elementId, PortPairGroupEntity portPairGroup, NetworkElementEntity ingress, NetworkElementEntity egress) {
+    public PortPairElement(String elementId, PortPairGroupElement portPairGroup, NetworkElementImpl ingress, NetworkElementImpl egress) {
         this.elementId = elementId;
         this.portPairGroup = portPairGroup;
         this.ingressPort = ingress;
@@ -48,28 +48,28 @@ public class InspectionPortEntity implements InspectionPortElement {
     }
 
     @Override
-    public NetworkElementEntity getIngressPort() {
+    public NetworkElementImpl getIngressPort() {
         return this.ingressPort;
     }
 
-    public void setIngressPort(NetworkElementEntity ingressPort) {
+    public void setIngressPort(NetworkElementImpl ingressPort) {
         this.ingressPort = ingressPort;
     }
 
     @Override
-    public NetworkElementEntity getEgressPort() {
+    public NetworkElementImpl getEgressPort() {
         return this.egressPort;
     }
 
-    public void setEgressPort(NetworkElementEntity egressPort) {
+    public void setEgressPort(NetworkElementImpl egressPort) {
         this.egressPort = egressPort;
     }
 
-    public PortPairGroupEntity getPortPairGroup() {
+    public PortPairGroupElement getPortPairGroup() {
         return this.portPairGroup;
     }
 
-    public void setPortPairGroup(PortPairGroupEntity portPairGroup) {
+    public void setPortPairGroup(PortPairGroupElement portPairGroup) {
         this.portPairGroup = portPairGroup;
     }
 
@@ -81,7 +81,7 @@ public class InspectionPortEntity implements InspectionPortElement {
     @Override
     public String toString() {
         // use get elementid on ppg to avoid cyclic dependency and stackoverflow issues
-        return "InspectionPortEntity [elementId=" + this.elementId + ", portPairGroup=" + getParentId()
+        return "PortPairElement [elementId=" + this.elementId + ", portPairGroup=" + getParentId()
                 + ", ingressPort=" + this.ingressPort + ", egressPort=" + this.egressPort + "]";
     }
 
@@ -104,7 +104,7 @@ public class InspectionPortEntity implements InspectionPortElement {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        InspectionPortEntity other = (InspectionPortEntity) obj;
+        PortPairElement other = (PortPairElement) obj;
         if (this.elementId == null) {
             if (other.elementId != null) {
                 return false;

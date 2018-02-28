@@ -66,15 +66,15 @@ public abstract class AbstractNeutronSfcPluginTest {
     }
 
     protected void persistIngress() {
-        ingressPort = portService.create(Builders.port().macAddress(ingressPortEntity.getMacAddresses().get(0))
-                                 .fixedIp(ingressPortEntity.getPortIPs().get(0), "mySubnet").build());
-        ingressPortEntity.setElementId(ingressPort.getId());
+        ingressPort = portService.create(Builders.port().macAddress(ingressPortElement.getMacAddresses().get(0))
+                                 .fixedIp(ingressPortElement.getPortIPs().get(0), "mySubnet").build());
+        ingressPortElement.setElementId(ingressPort.getId());
     }
 
     protected void persistEgress() {
-        egressPort = portService.create(Builders.port().macAddress(egressPortEntity.getMacAddresses().get(0))
-                                .fixedIp(egressPortEntity.getPortIPs().get(0), "mySubnet").build());
-        egressPortEntity.setElementId(egressPort.getId());
+        egressPort = portService.create(Builders.port().macAddress(egressPortElement.getMacAddresses().get(0))
+                                .fixedIp(egressPortElement.getPortIPs().get(0), "mySubnet").build());
+        egressPortElement.setElementId(egressPort.getId());
     }
 
     protected void persistInspectionPort(boolean withIngress, boolean withEgress) {

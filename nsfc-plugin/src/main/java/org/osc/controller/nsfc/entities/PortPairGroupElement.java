@@ -21,18 +21,18 @@ import java.util.List;
 
 import org.osc.sdk.controller.element.NetworkElement;
 
-public class PortPairGroupEntity implements NetworkElement {
+public class PortPairGroupElement implements NetworkElement {
 
     private String elementId;
 
-    private List<InspectionPortEntity> portPairs = new ArrayList<>();
+    private List<PortPairElement> portPairs = new ArrayList<>();
 
     private ServiceFunctionChainElement serviceFunctionChain;
 
-    public PortPairGroupEntity() {
+    public PortPairGroupElement() {
     }
 
-    public PortPairGroupEntity(String elementId) {
+    public PortPairGroupElement(String elementId) {
         this.elementId = elementId;
     }
 
@@ -53,14 +53,14 @@ public class PortPairGroupEntity implements NetworkElement {
         this.serviceFunctionChain = serviceFunctionChain;
     }
 
-    public List<InspectionPortEntity> getPortPairs() {
+    public List<PortPairElement> getPortPairs() {
         return this.portPairs;
     }
 
     @Override
     public String toString() {
         // use get elementid on sfc to avoid cyclic dependency and stackoverflow issues
-        return "PortPairGroupEntity [elementId=" + this.elementId + ", portPairs=" + this.portPairs
+        return "PortPairGroupElement [elementId=" + this.elementId + ", portPairs=" + this.portPairs
                 + ", serviceFunctionChain=" + getParentId() + "]";
     }
 

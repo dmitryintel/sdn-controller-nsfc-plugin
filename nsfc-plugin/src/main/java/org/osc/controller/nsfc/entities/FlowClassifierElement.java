@@ -21,18 +21,18 @@ import org.osc.sdk.controller.TagEncapsulationType;
 import org.osc.sdk.controller.element.InspectionHookElement;
 import org.osc.sdk.controller.element.InspectionPortElement;
 
-public class InspectionHookEntity implements InspectionHookElement {
+public class FlowClassifierElement implements InspectionHookElement {
 
     private String hookId;
 
-    private NetworkElementEntity inspectedPort;
+    private NetworkElementImpl inspectedPort;
 
     private ServiceFunctionChainElement serviceFunctionChain;
 
-    InspectionHookEntity() {
+    FlowClassifierElement() {
     }
 
-    public InspectionHookEntity(NetworkElementEntity inspectedPort, ServiceFunctionChainElement serviceFunctionChain) {
+    public FlowClassifierElement(NetworkElementImpl inspectedPort, ServiceFunctionChainElement serviceFunctionChain) {
         this.inspectedPort = inspectedPort;
         this.serviceFunctionChain = serviceFunctionChain;
     }
@@ -47,7 +47,7 @@ public class InspectionHookEntity implements InspectionHookElement {
     }
 
     @Override
-    public NetworkElementEntity getInspectedPort() {
+    public NetworkElementImpl getInspectedPort() {
         return this.inspectedPort;
     }
 
@@ -81,7 +81,7 @@ public class InspectionHookEntity implements InspectionHookElement {
 
     @Override
     public String toString() {
-        return "InspectionHookEntity [hookId=" + this.hookId + ", inspectedPort=" + this.inspectedPort
+        return "FlwoClassifierElement [hookId=" + this.hookId + ", inspectedPort=" + this.inspectedPort
                 + ", serviceFunctionChain=" + this.serviceFunctionChain + "]";
     }
 

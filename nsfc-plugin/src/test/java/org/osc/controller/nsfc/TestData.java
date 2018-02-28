@@ -38,10 +38,10 @@ import org.openstack4j.model.network.ext.PortChain;
 import org.openstack4j.model.network.ext.PortPair;
 import org.openstack4j.model.network.ext.PortPairGroup;
 import org.openstack4j.model.network.options.PortListOptions;
-import org.osc.controller.nsfc.entities.InspectionHookEntity;
-import org.osc.controller.nsfc.entities.InspectionPortEntity;
-import org.osc.controller.nsfc.entities.NetworkElementEntity;
-import org.osc.controller.nsfc.entities.PortPairGroupEntity;
+import org.osc.controller.nsfc.entities.FlowClassifierElement;
+import org.osc.controller.nsfc.entities.PortPairElement;
+import org.osc.controller.nsfc.entities.NetworkElementImpl;
+import org.osc.controller.nsfc.entities.PortPairGroupElement;
 import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
 
 class TestData {
@@ -62,14 +62,14 @@ class TestData {
 
     private static final Random ID_GENERATOR = new Random(System.currentTimeMillis());
 
-    public static InspectionHookEntity inspectionHook;
-    public static InspectionPortEntity inspectionPort;
-    public static PortPairGroupEntity ppgEntity;
+    public static FlowClassifierElement inspectionHook;
+    public static PortPairElement inspectionPort;
+    public static PortPairGroupElement ppgElement;
     public static ServiceFunctionChainElement sfc;
 
-    public static NetworkElementEntity ingressPortEntity;
-    public static NetworkElementEntity egressPortEntity;
-    public static NetworkElementEntity inspected;
+    public static NetworkElementImpl ingressPortElement;
+    public static NetworkElementImpl egressPortElement;
+    public static NetworkElementImpl inspected;
 
     public static PortChain portChain;
     public static PortPair portPair;
@@ -85,30 +85,30 @@ class TestData {
 
     @SuppressWarnings("unchecked")
     public static void setupDataObjects() {
-        ingressPortEntity = new NetworkElementEntity();
-        ingressPortEntity.setElementId(IMAC1_STR + IMAC1_STR);
-        ingressPortEntity.setMacAddresses(asList(IMAC1_STR));
-        ingressPortEntity.setPortIPs(asList(IADDR1_STR));
+        ingressPortElement = new NetworkElementImpl();
+        ingressPortElement.setElementId(IMAC1_STR + IMAC1_STR);
+        ingressPortElement.setMacAddresses(asList(IMAC1_STR));
+        ingressPortElement.setPortIPs(asList(IADDR1_STR));
 
-        egressPortEntity = new NetworkElementEntity();
-        egressPortEntity.setElementId(EMAC1_STR + EMAC1_STR);
-        egressPortEntity.setMacAddresses(asList(EMAC1_STR));
-        egressPortEntity.setPortIPs(asList(EADDR1_STR));
+        egressPortElement = new NetworkElementImpl();
+        egressPortElement.setElementId(EMAC1_STR + EMAC1_STR);
+        egressPortElement.setMacAddresses(asList(EMAC1_STR));
+        egressPortElement.setPortIPs(asList(EADDR1_STR));
 
-        inspected = new NetworkElementEntity();
+        inspected = new NetworkElementImpl();
         inspected.setElementId("iNsPeCtEdPoRt");
         inspected.setMacAddresses(asList(INSPMAC1_STR));
         inspected.setPortIPs(asList(INSPADDR_STR));
 
-        ppgEntity = new PortPairGroupEntity();
+        ppgElement = new PortPairGroupElement();
 
-        inspectionPort = new InspectionPortEntity();
-        inspectionPort.setIngressPort(ingressPortEntity);
-        inspectionPort.setEgressPort(egressPortEntity);
+        inspectionPort = new PortPairElement();
+        inspectionPort.setIngressPort(ingressPortElement);
+        inspectionPort.setEgressPort(egressPortElement);
 
         sfc = new ServiceFunctionChainElement();
 
-        inspectionHook = new InspectionHookEntity(inspected, sfc);
+        inspectionHook = new FlowClassifierElement(inspected, sfc);
 
         portChain = Builders.portChain().build();
         portPair = Builders.portPair().build();
