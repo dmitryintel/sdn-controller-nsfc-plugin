@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.openstack4j.api.Builders;
@@ -57,7 +58,6 @@ import org.slf4j.LoggerFactory;
 public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
     private static final Logger LOG = LoggerFactory.getLogger(NeutronSfcSdnRedirectionApi.class);
-    public static final String KEY_HOOK_ID = "sfc_inspection_hook_id";
 
     private RedirectionApiUtils utils;
     private OsCalls osCalls;
@@ -243,14 +243,11 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         ServiceFunctionChainElement sfcElement = this.utils.fetchSFCWithChildDepends(portChain);
 
-        String inspectedIp = inspectedPortElement.getPortIPs().get(0);
-        FlowClassifier flowClassifier = this.utils.buildFlowClassifier(inspectedIp, sfcElement);
+        FlowClassifier flowClassifier = this.utils.buildFlowClassifier(inspectedPortElement.getElementId(), sfcElement);
 
         flowClassifier = this.osCalls.createFlowClassifier(flowClassifier);
         portChain.getFlowClassifiers().add(flowClassifier.getId());
         this.osCalls.updatePortChain(portChain.getId(), portChain);
-
-        this.utils.setHookOnPort(inspectedPortElement.getElementId(), flowClassifier.getId());
 
         return flowClassifier.getId();
     }
@@ -324,9 +321,6 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             this.osCalls.updatePortChain(portChain.getId(), portChain);
         }
 
-        Port protectedPort = this.utils.fetchProtectedPort(flowClassifier);
-        this.utils.setHookOnPort(protectedPort.getId(), null);
-
         ActionResponse result = this.osCalls.deleteFlowClassifier(flowClassifier.getId());
         if (result.getFault() != null) {
             LOG.error("Error removing flow classifier {}. Response {} ({})", flowClassifier.getId(),
@@ -374,6 +368,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         PortChain portChain = Builders.portChain()
                                     .description("Port Chain object created by OSC")
+                                    .name("OSCPortChain-" + UUID.randomUUID().toString().substring(0, 8))
                                     .chainParameters(emptyMap())
                                     .flowClassifiers(emptyList())
                                     .portPairGroups(portPairGroupIds)
@@ -525,5 +520,4 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
     @Override
     public void close() throws Exception {
     }
-
 }

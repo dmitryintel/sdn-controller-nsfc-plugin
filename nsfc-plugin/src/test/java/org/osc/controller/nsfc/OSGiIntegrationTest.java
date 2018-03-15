@@ -19,7 +19,6 @@ package org.osc.controller.nsfc;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 import static org.ops4j.pax.exam.CoreOptions.*;
-import static org.osc.controller.nsfc.api.NeutronSfcSdnRedirectionApi.KEY_HOOK_ID;
 import static org.osc.sdk.controller.FailurePolicyType.NA;
 import static org.osc.sdk.controller.TagEncapsulationType.VLAN;
 
@@ -72,29 +71,32 @@ public class OSGiIntegrationTest {
     private static final String PASSWORD = "admin123";
     private static final String USERNAME = "admin";
     private static final String TENANT = "admin";
-    private static final String TEST_CONTROLLER_IP = "10.3.241.221";
+    private static final String TEST_CONTROLLER_IP = "10.3.243.183";
 
-    private static final String INGRESS0_ID = "9818a1ae-ee38-43f5-ab0a-e93e3b81d385";
-    private static final String EGRESS0_ID = "73ffe3e4-80f5-4bf3-8a2b-e7e117c797d2";
+    private static final String INGRESS0_ID = "ec1ca134-db9c-4fdc-8964-2b18851eca1b";
+    private static final String EGRESS0_ID = "ec1ca134-db9c-4fdc-8964-2b18851eca1b";
+//    private static final String EGRESS0_ID = "5686a891-cf7a-4803-a286-e00c70a96995";
 
-    private static final String INGRESS0_IP = "192.168.1.76";
-    private static final String EGRESS0_IP = "172.16.0.13";
+    private static final String INGRESS0_IP = "172.16.3.14";
+    private static final String EGRESS0_IP = "172.16.3.14";
+//    private static final String EGRESS0_IP = "172.16.1.4";
 
-    private static final String INGRESS0_MAC = "fa:16:3e:ed:90:1b";
-    private static final String EGRESS0_MAC = "fa:16:3e:73:b2:b6";
+    private static final String INGRESS0_MAC = "fa:16:3e:cb:44:2d";
+    private static final String EGRESS0_MAC = "fa:16:3e:cb:44:2d";
+//    private static final String EGRESS0_MAC = "fa:16:3e:66:5b:42";
 
-    private static final String INGRESS1_ID = "c2753288-4a78-4ed6-b591-383fc59f8514";
-    private static final String EGRESS1_ID = "13eeb3ac-ea52-47a7-bc2d-a5f7763d37c0";
+    private static final String INGRESS1_ID = "6c47e906-f305-4ba0-9b7f-2b375c166b0d";
+    private static final String EGRESS1_ID = "6c47e906-f305-4ba0-9b7f-2b375c166b0d";
 
-    private static final String INGRESS1_IP = "192.168.1.77";
-    private static final String EGRESS1_IP = "172.16.0.11";
+    private static final String INGRESS1_IP = "172.16.1.5";
+    private static final String EGRESS1_IP = "172.16.1.5";
 
-    private static final String INGRESS1_MAC = "fa:16:3e:4c:27:49";
-    private static final String EGRESS1_MAC = "fa:16:3e:a9:81:ee";
+    private static final String INGRESS1_MAC = "fa:16:3e:d3:84:7e";
+    private static final String EGRESS1_MAC = "fa:16:3e:d3:84:7e";
 
-    private static final String INSPECTED_ID = "5db6a898-956f-424f-8371-abcf7a20aa03";
-    private static final String INSPECTED_IP = "172.16.0.3";
-    private static final String INSPECTED_MAC = "fa:16:3e:f1:01:34";
+    private static final String INSPECTED_ID = "11e5dd85-b1f7-422d-a822-181351b22aef";
+    private static final String INSPECTED_IP = "172.16.3.8";
+    private static final String INSPECTED_MAC = "fa:16:3e:ca:37:38";
 
     // just for verifying stuff
     private OSClientV3 osClient;
@@ -239,7 +241,7 @@ public class OSGiIntegrationTest {
                     mavenBundle("com.google.guava","guava").versionAsInProject(),
 
                     // Uncomment this line to allow remote debugging
-//                    CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
+                     // CoreOptions.vmOption("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1047"),
 
                     bootClasspathLibrary(mavenBundle("org.apache.geronimo.specs", "geronimo-jta_1.1_spec", "1.1.1"))
                             .beforeFramework(),
@@ -265,7 +267,10 @@ public class OSGiIntegrationTest {
 
         this.osClient = v3.authenticate();
 
-        LOG.debug("You should have prepared an opentack with sfc and two servers with two ports each!");
+        // On control node, use 'drivers = dummy' in /etc/neutron/neutron.conf. That's under [ovs] section.
+        // You should have prepared an opentack with sfc and two servers on management network!
+        // Normally, we want to use 'drivers = sfc' but that one is buggy as of 3/15/18.
+        // See https://docs.openstack.org/networking-sfc/latest/install/index.html
 
         this.ingressElement0 = new NetworkElementImpl(INGRESS0_ID, asList(INGRESS0_MAC),
                                                                     asList(INGRESS0_IP), null);
@@ -285,7 +290,7 @@ public class OSGiIntegrationTest {
         if (this.redirApi != null) {
             this.redirApi.close();
         }
-        cleanAllOnOpenstack();
+//        cleanAllOnOpenstack();
     }
 
 //  @Test
@@ -299,11 +304,12 @@ public class OSGiIntegrationTest {
         assertTrue(this.redirApi instanceof NeutronSfcSdnRedirectionApi);
     }
 
-    // The following test results in
-    // ClientResponseException{message=Port Pair with ingress port 73ffe3e4-80f5-4bf3-8a2b-e7e117c797d2 and
-    // egress port 9818a1ae-ee38-43f5-ab0a-e93e3b81d385 is already used by another Port Pair
-    // 666cedd4-4752-4b18-b4f7-48f553969020., status=400, status-code=BAD_REQUEST}
-//    @Test
+    // The following test proves that create calls are not idempotent.
+    // It results in ClientResponseException {message=Port Pair
+    // with ingress port <SOME_UUID> and
+    // egress port <SOME_UUID> is already used by another Port Pair
+    // <SOME_UUID>, status=400, status-code=BAD_REQUEST}
+    //    @Test
     public void testIdempotent() throws Exception {
 
         PortPair pp = Builders.portPair().ingressId(INGRESS0_ID).egressId(EGRESS0_ID).build();
@@ -404,8 +410,6 @@ public class OSGiIntegrationTest {
 
         Port inspectedPortCheck = this.osClient.networking().port().get(INSPECTED_ID);
         assertNotNull(inspectedPortCheck);
-        assertNotNull(inspectedPortCheck.getProfile());
-        assertEquals(hookId, inspectedPortCheck.getProfile().get(KEY_HOOK_ID));
 
         String sfcId = ih.getInspectionPort().getElementId();
         assertEquals(sfc.getElementId(), sfcId);
@@ -429,11 +433,6 @@ public class OSGiIntegrationTest {
         assertNull(this.redirApi.getInspectionHook(hookId));
         assertNull(this.osClient.sfc().flowclassifiers().get(hookId));
 
-        inspectedPortCheck = this.osClient.networking().port().get(INSPECTED_ID);
-        assertNotNull(inspectedPortCheck);
-        assertFalse(inspectedPortCheck.getProfile() != null
-                           && inspectedPortCheck.getProfile().get(KEY_HOOK_ID) != null);
-
         portChainCheck = this.osClient.sfc().portchains().get(sfcId);
         assertFalse(portChainCheck.getFlowClassifiers() != null
                           && portChainCheck.getFlowClassifiers().contains(hookId));
@@ -443,7 +442,8 @@ public class OSGiIntegrationTest {
         assertNull(this.osClient.sfc().portchains().get(sfc.getElementId()));
     }
 
-    private void cleanAllOnOpenstack() {
+//    @Test
+    public void cleanAllOnOpenstack() {
         List<? extends PortChain> portChains = this.osClient.sfc().portchains().list();
         List<? extends FlowClassifier> flowClassifiers = this.osClient.sfc().flowclassifiers().list();
         List<? extends PortPairGroup> portPairGroups = this.osClient.sfc().portpairgroups().list();

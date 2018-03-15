@@ -40,13 +40,8 @@ public class OsCalls {
 
    public FlowClassifier createFlowClassifier(FlowClassifier flowClassifier) {
        checkArgument(flowClassifier != null, "null passed for %s !", "Flow Classifier");
-       String ip = flowClassifier.getDestinationIpPrefix();
 
-       if (ip != null && !ip.endsWith("/32")) {
-           ip += "/32";
-       }
-
-       flowClassifier = flowClassifier.toBuilder().id(null).destinationIpPrefix(ip).build();
+       flowClassifier = flowClassifier.toBuilder().id(null).build();
        return this.osClient.sfc().flowclassifiers().create(flowClassifier);
    }
 

@@ -32,8 +32,6 @@ import org.osc.sdk.controller.api.SdnControllerApi;
 import org.osc.sdk.controller.api.SdnRedirectionApi;
 import org.osc.sdk.controller.element.VirtualizationConnectorElement;
 import org.osgi.service.component.annotations.Component;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Component(configurationPid = "org.osc.nsfc.SdnController",
     property = { PLUGIN_NAME + "=Neutron-sfc",
@@ -45,8 +43,6 @@ import org.slf4j.LoggerFactory;
                  SUPPORT_PORT_GROUP + ":Boolean=false",
                  SUPPORT_NEUTRON_SFC + ":Boolean=true"})
 public class NeutronSfcSdnControllerApi implements SdnControllerApi {
-
-    private static final Logger LOG = LoggerFactory.getLogger(NeutronSfcSdnControllerApi.class);
 
     private static final String VERSION = "0.1";
     private static final String NAME = "Neutron-sfc";

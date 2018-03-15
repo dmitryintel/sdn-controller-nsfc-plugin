@@ -50,8 +50,6 @@ class TestData {
 
     private static final String IADDR1_STR = "10.4.3.1";
 
-    private static final String EMAC2_STR = "ee:ff:aa:bb:cc:02";
-
     private static final String EMAC1_STR = "ee:ff:aa:bb:cc:01";
 
     private static final String IMAC1_STR = "ff:ff:aa:bb:cc:01";
@@ -83,7 +81,6 @@ class TestData {
     public static PortPairGroupService portPairGroupService;
     public static FlowClassifierService flowClassifierService;
 
-    @SuppressWarnings("unchecked")
     public static void setupDataObjects() {
         ingressPortElement = new NetworkElementImpl();
         ingressPortElement.setElementId(IMAC1_STR + IMAC1_STR);
@@ -138,8 +135,8 @@ class TestData {
         public T create(T object) {
             String id;
             do {
-				id = ID_GENERATOR.nextLong() + "";
-			} while (this.dataObjects.keySet().contains(id));
+                id = ID_GENERATOR.nextLong() + "";
+            } while (this.dataObjects.keySet().contains(id));
 
             object.setId(id);
             this.dataObjects.put(id, object);

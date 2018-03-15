@@ -48,6 +48,4 @@ public class ArgumentCheckUtil {
            throw new IllegalArgumentException(msg);
        }
    }
-
-
 }

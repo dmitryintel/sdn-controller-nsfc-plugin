@@ -113,7 +113,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertNotNull(foundInspPortElement);
     }
 
-
     @Test
     public void testApi_RegisterInspectionPortWithParentId_Succeeds() throws Exception {
         // Arrange.
@@ -188,8 +187,7 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         assertTrue(portPairGroup.getPortPairs().contains(portPair.getId()));
         assertEquals(portPairGroup.getId(), registeredElement.getParentId());
 
-        InspectionPortElement foundInspectionPort =
-                this.redirApi.getInspectionPort(new PortPairElement(portPair.getId(), null, ingressPortElement, egressPortElement));
+        this.redirApi.getInspectionPort(new PortPairElement(portPair.getId(), null, ingressPortElement, egressPortElement));
 
         assertEquals(inspectionPortElement.getElementId(), portPair.getId());
 
@@ -340,7 +338,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         persistPortChainAndSfcElement();
 
         FlowClassifierElement updatedHook = new FlowClassifierElement("non-existing-id", inspected, sfc);
-
 
         this.exception.expect(IllegalArgumentException.class);
         this.exception.expectMessage(StringStartsWith.startsWith("Cannot find Flow Classifier"));
@@ -509,7 +506,6 @@ public class NeutronSfcSdnRedirectionApiTest extends AbstractNeutronSfcPluginTes
         // Act
         this.redirApi.updateNetworkElement(sfcPort, neList);
     }
-
 
     @Test
     public void testApi_UpdateNetworkElementWhenPpgIdIsChainedToSameSfc_VerifySuccessful()
