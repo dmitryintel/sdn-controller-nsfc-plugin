@@ -21,7 +21,6 @@ import static org.junit.Assert.*;
 import static org.osc.sdk.controller.FailurePolicyType.NA;
 import static org.osc.sdk.controller.TagEncapsulationType.VLAN;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -32,10 +31,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
-import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient.OSClientV3;
 import org.openstack4j.api.client.IOSClientBuilder.V3;
-import org.openstack4j.api.exceptions.ClientResponseException;
 import org.openstack4j.model.common.Identifier;
 import org.openstack4j.model.network.Port;
 import org.openstack4j.model.network.ext.FlowClassifier;
@@ -221,38 +218,6 @@ public class LiveEnvIntegrationTest {
         // Assert.
         assertNull(noSuchHook);
         assertTrue(this.redirApi instanceof NeutronSfcSdnRedirectionApi);
-    }
-
-    // The following test proves that create calls are not idempotent.
-    // It results in ClientResponseException {message=Port Pair
-    // with ingress port <SOME_UUID> and
-    // egress port <SOME_UUID> is already used by another Port Pair
-    // <SOME_UUID>, status=400, status-code=BAD_REQUEST}
-//        @Test
-    public void testIdempotent() throws Exception {
-
-        PortPair pp = Builders.portPair().ingressId(INGRESS0_ID).egressId(EGRESS0_ID).build();
-
-        pp = this.osClient.sfc().portpairs().create(pp);
-
-        pp = pp.toBuilder().id(null).projectId(null).build();
-        this.exception.expect(ClientResponseException.class);
-        pp = this.osClient.sfc().portpairs().create(pp);
-    }
-
-//    @Test
-    public void testIdempotentPPG() throws Exception {
-
-        PortPair pp = Builders.portPair().ingressId(INGRESS0_ID).egressId(EGRESS0_ID).build();
-
-        pp = this.osClient.sfc().portpairs().create(pp);
-
-        PortPairGroup ppg = Builders.portPairGroup().portPairs(Arrays.asList(pp.getId())).build();
-        ppg = this.osClient.sfc().portpairgroups().create(ppg);
-        ppg = ppg.toBuilder().id(null).projectId(null).build();
-
-        this.exception.expect(ClientResponseException.class);
-        this.osClient.sfc().portpairgroups().create(ppg);
     }
 
 //    @Test
