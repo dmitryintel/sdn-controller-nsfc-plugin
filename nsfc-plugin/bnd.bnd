@@ -1,4 +1,6 @@
 
+Bundle-SymbolicName: sdn-controller-nsfc-plugin
+
 Import-Package: javassist.util.proxy,*
 
 #Exporting entities and utils so that PaxExam in OSGiIntegrationTest works.
