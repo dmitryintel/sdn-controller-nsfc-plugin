@@ -78,23 +78,11 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             return null;
         }
 
-        String portPairId = inspectionPort.getElementId();
-        PortPair portPair = null;
-
-        if (portPairId != null) {
-            portPair = this.osCalls.getPortPair(portPairId);
-        }
-
-        NetworkElement ingress = inspectionPort.getIngressPort();
-        NetworkElement egress = inspectionPort.getEgressPort();
-
-        if (portPair == null) {
-            LOG.warn("Failed to retrieve Port Pair by id! Trying by ingress and egress " + inspectionPort);
-
-            portPair = this.utils.fetchInspectionPortByNetworkElements(ingress, egress);
-        }
+        PortPair portPair = this.utils.fetchPortPairForInspectionPort(inspectionPort);
 
         if (portPair != null) {
+            NetworkElement ingress = inspectionPort.getIngressPort();
+            NetworkElement egress = inspectionPort.getEgressPort();
             NetworkElementImpl ingressElement = null;
             NetworkElementImpl egressElement = null;
 
@@ -109,7 +97,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             }
 
             // only id is ever used
-            return new PortPairElement(portPairId, null, ingressElement, egressElement);
+            return new PortPairElement(portPair.getId(), null, ingressElement, egressElement);
         }
 
         return null;
@@ -131,11 +119,12 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
 
         NetworkElement ingress = inspectionPort.getIngressPort();
         NetworkElement egress = inspectionPort.getEgressPort();
-        PortPair portPair = this.utils.fetchInspectionPortByNetworkElements(ingress, egress);
+        PortPair portPair = this.utils.fetchPortPairByNetworkElements(ingress, egress);
 
         if (portPair == null) {
             portPair = Builders.portPair().egressId(egress.getElementId())
                             .ingressId(ingress.getElementId())
+                            .name("OSCPortPair-" + UUID.randomUUID().toString().substring(0, 8))
                             .description("Port Pair created by OSC")
                             .build();
             portPair = this.osCalls.createPortPair(portPair);
@@ -188,7 +177,7 @@ public class NeutronSfcSdnRedirectionApi implements SdnRedirectionApi {
             return;
         }
 
-        PortPair portPair = this.osCalls.getPortPair(inspectionPort.getElementId());
+        PortPair portPair = this.utils.fetchPortPairForInspectionPort(inspectionPort);
 
         if (portPair != null) {
             PortPairGroup portPairGroup = this.utils.fetchContainingPortPairGroup(portPair.getId());

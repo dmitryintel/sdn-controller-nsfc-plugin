@@ -39,6 +39,7 @@ import org.osc.controller.nsfc.entities.NetworkElementImpl;
 import org.osc.controller.nsfc.entities.PortPairElement;
 import org.osc.controller.nsfc.entities.PortPairGroupElement;
 import org.osc.controller.nsfc.entities.ServiceFunctionChainElement;
+import org.osc.sdk.controller.element.InspectionPortElement;
 import org.osc.sdk.controller.element.NetworkElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,7 @@ public class RedirectionApiUtils {
         return new NetworkElementImpl(port.getId(), singletonList(port.getMacAddress()), ips, parentId);
     }
 
-    private PortPairElement fetchPortPairWithChildDepends(PortPair portPair) {
+    private PortPairElement fetchPortPairElementWithChildDepends(PortPair portPair) {
         checkArgument(portPair != null, "null passed for %s !", "Port Pair");
 
         Port ingressPort = portPair.getIngressId() != null ? this.osCalls.getPort(portPair.getIngressId())
@@ -98,7 +99,7 @@ public class RedirectionApiUtils {
 
             for (PortPair portPair : portPairs) {
                 try {
-                    PortPairElement portPairElement = fetchPortPairWithChildDepends(portPair);
+                    PortPairElement portPairElement = fetchPortPairElementWithChildDepends(portPair);
                     retVal.getPortPairs().add(portPairElement);
                     portPairElement.setPortPairGroup(retVal);
                 } catch (IllegalArgumentException e) {
@@ -148,7 +149,7 @@ public class RedirectionApiUtils {
      *
      * @return PortPair
      */
-    public PortPair fetchInspectionPortByNetworkElements(NetworkElement ingress, NetworkElement egress) {
+    public PortPair fetchPortPairByNetworkElements(NetworkElement ingress, NetworkElement egress) {
         String ingressId = ingress != null ? ingress.getElementId() : null;
         String egressId = egress != null ? egress.getElementId() : null;
 
@@ -159,6 +160,26 @@ public class RedirectionApiUtils {
                                             && Objects.equals(egressId, pp.getEgressId()))
                         .findFirst()
                         .orElse(null);
+    }
+
+    public PortPair fetchPortPairForInspectionPort(InspectionPortElement inspectionPort) {
+        String portPairId = inspectionPort.getElementId();
+        PortPair portPair = null;
+
+        if (portPairId != null) {
+            portPair = this.osCalls.getPortPair(portPairId);
+        }
+
+        if (portPair == null) {
+            LOG.warn("Failed to retrieve Port Pair by id! Trying by ingress and egress " + inspectionPort);
+
+            NetworkElement ingress = inspectionPort.getIngressPort();
+            NetworkElement egress = inspectionPort.getEgressPort();
+
+            portPair = fetchPortPairByNetworkElements(ingress, egress);
+        }
+
+        return portPair;
     }
 
     public PortPairGroup fetchContainingPortPairGroup(String portPairId) {
