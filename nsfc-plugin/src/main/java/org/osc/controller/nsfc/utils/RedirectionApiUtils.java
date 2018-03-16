@@ -186,7 +186,7 @@ public class RedirectionApiUtils {
         return pcOpt.orElse(null);
     }
 
-    public FlowClassifier buildFlowClassifier(String inspectedPortId, ServiceFunctionChainElement sfcElement) {
+    public FlowClassifier buildFlowClassifier(String inspectedPortId) {
         FlowClassifier flowClassifier;
 
         flowClassifier = Builders.flowClassifier()

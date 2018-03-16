@@ -193,4 +193,7 @@ class TestData {
     private static class MockFlowClassifierService extends CRUDMockService<FlowClassifier> implements FlowClassifierService {
     }
 
+    static PortPairService mockPortPairService() {
+        return new MockPortPairService();
+    }
 }
