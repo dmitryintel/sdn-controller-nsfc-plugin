@@ -16,11 +16,12 @@
  *******************************************************************************/
 package org.osc.controller.nsfc;
 
-import static org.junit.Assert.assertNotNull;
 import static org.ops4j.pax.exam.CoreOptions.*;
 
 import javax.inject.Inject;
 
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -30,8 +31,11 @@ import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
 import org.ops4j.pax.exam.util.PathUtils;
+import org.osc.controller.nsfc.api.NeutronSfcSdnControllerApi;
 import org.osc.sdk.controller.api.SdnControllerApi;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.osgi.util.tracker.ServiceTracker;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -40,8 +44,7 @@ public class OSGiIntegrationTest {
     @Inject
     BundleContext context;
 
-    @Inject
-    SdnControllerApi api;
+    private ServiceTracker<SdnControllerApi, SdnControllerApi> tracker;
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -115,8 +118,23 @@ public class OSGiIntegrationTest {
         }
     }
 
+    @Before
+    public void startup() {
+        // Set up a tracker which only picks up "testing" services
+        this.tracker = new ServiceTracker<SdnControllerApi, SdnControllerApi>(this.context,
+                SdnControllerApi.class, null) {
+            @Override
+            public SdnControllerApi addingService(ServiceReference<SdnControllerApi> ref) {
+                return this.context.getService(ref);
+            }
+        };
+
+        this.tracker.open();
+    }
+
     @Test
-    public void verifyApiResponds() throws Exception {
-       assertNotNull(this.api);
+    public void verifyApiInjected() throws Exception {
+        SdnControllerApi api = this.tracker.waitForService(5000);
+        Assert.assertTrue(api instanceof NeutronSfcSdnControllerApi);
     }
 }

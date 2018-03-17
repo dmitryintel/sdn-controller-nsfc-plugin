@@ -54,6 +54,23 @@ import org.osc.sdk.controller.element.VirtualizationConnectorElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This test is run against live ocata environment. Username and password should work.
+ * The Project (AKA Tenant) should be admin.
+ * INGRESS/EGRESS ID's, MAC's and IP's should correspond to pre-created VM's on
+ * ocata.
+ *
+ * Due to certain issues with networking-sfc plugin and openvswitch, we have to make certain temporary concessions.
+ * We are not really using the ovs driver. On control node, use 'drivers = dummy' in /etc/neutron/neutron.conf.
+ * That's under the [ovs] section.
+ *
+ * On the compute node, comment out the "extensions = sfc" line in
+ * /etc/neutron/plugins/ml2/openvswitch_agent.ini. Effectively, this turns off hte actual
+ * networking_sfc agent and only tests the plugin, making sure the api calls are correct and
+ * in correct sequence.
+ *
+ * See https://docs.openstack.org/networking-sfc/latest/install/index.html
+ */
 public class LiveEnvIntegrationTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(LiveEnvIntegrationTest.class);
@@ -182,11 +199,6 @@ public class LiveEnvIntegrationTest {
 
         this.osClient = v3.authenticate();
         this.api =  new NeutronSfcSdnControllerApi();
-
-        // On control node, use 'drivers = dummy' in /etc/neutron/neutron.conf. That's under [ovs] section.
-        // You should have prepared an opentack with sfc and two servers on management network!
-        // Normally, we want to use 'drivers = sfc' but that one is buggy as of 3/15/18.
-        // See https://docs.openstack.org/networking-sfc/latest/install/index.html
 
         this.ingressElement0 = new NetworkElementImpl(INGRESS0_ID, asList(INGRESS0_MAC),
                                                                     asList(INGRESS0_IP), null);
